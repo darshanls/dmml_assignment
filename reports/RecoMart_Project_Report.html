@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RecoMart - End-to-End Data Management Pipeline Report</title>
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f7f8fa; color: #222; }
+    .container { max-width: 960px; margin: 0 auto; padding: 30px 40px; background: #fff; }
+    header.title-page { text-align: center; padding: 60px 20px; border-bottom: 4px solid #14145a; }
+    header.title-page h1 { color: #14145a; font-size: 30px; margin-bottom: 6px; }
+    header.title-page h3 { color: #444; font-weight: 400; }
+    section { margin: 30px 0; }
+    h2 { color: #14145a; border-bottom: 2px solid #14145a; padding-bottom: 6px; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; font-size: 14px; }
+    th { background: #14145a; color: #fff; }
+    tr:nth-child(even) { background: #f2f2f8; }
+    ul { line-height: 1.6; }
+    figure { margin: 20px 0; text-align: center; }
+    figcaption { font-weight: 600; margin-bottom: 8px; color: #14145a; }
+    img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+    footer { text-align: center; padding: 20px; color: #888; font-size: 12px; }
+    .links a { color: #14145a; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="title-page">
+    <h1>End-to-End Data Management Pipeline<br>for a Recommendation System</h1>
+    <h3>RecoMart Data Platform Team</h3>
+    <table><thead><tr><th>Name</th><th>Roll No / ID</th></tr></thead><tbody><tr><td>DARSHAN LS</td><td>2025AA05828</td></tr>
+<tr><td>SARDESAI SHRISHTI SANJAY</td><td>2025AA05830</td></tr>
+<tr><td>SUNIL GUPTA</td><td>2025AA05833</td></tr>
+<tr><td>ANEESH MURALI</td><td>2025AA05834</td></tr>
+<tr><td>MARISETTI SANTHOSH</td><td>2025AA05836</td></tr></tbody></table>
+</header>
+
+
+    <section>
+        <h2>1. Problem Statement</h2>
+        <p>RecoMart, an e-commerce startup, wants to build a data-driven recommendation engine to improve customer engagement and cross-selling conversion. User behavior is captured across multiple heterogeneous sources -- web/mobile clickstream logs, transactional purchase history, product catalog metadata, and external sentiment/popularity signals -- and must be continuously ingested, validated, curated into features, and used to train/update a personalized recommendation model.</p>
+    </section>
+    
+
+
+    <section>
+        <h2>2. Objectives</h2>
+        <ul><li>Ingest at least two heterogeneous data types (CSV-based interaction logs, REST API product catalog) on an automated, retryable schedule.</li>
+<li>Store raw data in a partitioned local data lake (source / type / date).</li>
+<li>Profile and validate data quality (missing values, duplicates, schema, range checks) with an automated report.</li>
+<li>Clean, encode, and normalize data; conduct EDA on interaction distributions, item popularity, and sparsity.</li>
+<li>Engineer recommendation-ready features (activity frequency, average ratings, item co-occurrence) into a structured warehouse.</li>
+<li>Stand up a lightweight, versioned feature store serving both training and inference.</li>
+<li>Version raw/processed data and track transformation lineage.</li>
+<li>Train and evaluate a collaborative-filtering recommendation model (Precision@K, Recall@K, NDCG@K), tracked via MLflow.</li>
+<li>Orchestrate the full pipeline end-to-end with automated retries and logging.</li></ul>
+    </section>
+    
+
+
+    <section>
+        <h2>3. Methodology / Pipeline</h2>
+        <p>The pipeline is implemented as 6 modular stages, each independently runnable and orchestrated end-to-end with Prefect: Ingestion -&gt; Raw Storage -&gt; Validation -&gt; Preparation (Cleaning + EDA) -&gt; Transformation (Feature Engineering into SQLite warehouse) -&gt; Feature Store retrieval -&gt; Model Training &amp; Evaluation (MLflow).</p><p>Data sources: (a) clickstream events and (b) transaction/purchase records are simulated per run to mimic a live Kafka/OLTP source system; (c) product catalog is fetched live from the FakeStore REST API (https://fakestoreapi.com/products); (d) product sentiment/popularity scores are retrieved via a retry-capable scoring-service client (simulated locally, same integration pattern as a real API).</p>
+    </section>
+    
+
+
+    <section>
+        <h2>4. Implementation Details</h2>
+        <ul><li>Ingestion: src/ingestion/*.py - tenacity-based exponential-backoff retries, rotating file logs (logs/ingestion.log), partitioned raw storage.</li>
+<li>Validation: src/validation/validate_data.py - pandas-based schema/null/duplicate/range checks -&gt; JSON + PDF quality report.</li>
+<li>Preparation: src/preparation/clean_and_prepare.py - dedup, missing-value handling, LabelEncoder/MinMaxScaler, EDA plots.</li>
+<li>Transformation: src/transformation/feature_engineering.py + schema.sql - user/item/co-occurrence features loaded into SQLite warehouse (warehouse/recomart.db).</li>
+<li>Feature Store: src/feature_store/feature_store.py + feature_registry.yaml - versioned, declarative feature metadata with offline/online retrieval.</li>
+<li>Modeling: src/models/train_model.py - Truncated SVD collaborative filtering over a weighted implicit+explicit interaction matrix; src/models/inference.py - top-N recommendation interface.</li>
+<li>Orchestration: src/orchestration/pipeline_flow.py - Prefect @flow/@task DAG with retries and structured logging.</li>
+<li>Versioning: docs/VERSIONING.md - Git + DVC workflow for data/model lineage.</li></ul>
+    </section>
+    
+
+
+    <section>
+        <h2>5. Results and Output</h2>
+        <h3>Warehouse table row counts (latest pipeline run)</h3><table><thead><tr><th>Table</th><th>Row Count</th></tr></thead><tbody><tr><td>dim_users</td><td>500</td></tr>
+<tr><td>dim_items</td><td>20</td></tr>
+<tr><td>fact_interactions</td><td>4000</td></tr>
+<tr><td>fact_transactions</td><td>800</td></tr>
+<tr><td>item_cooccurrence</td><td>190</td></tr></tbody></table><h3>Model evaluation metrics (MLflow-tracked, latest run)</h3><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>explained_variance_ratio</td><td>0.9766</td></tr>
+<tr><td>ndcg_at_k</td><td>0.2946</td></tr>
+<tr><td>precision_at_k</td><td>0.0720</td></tr>
+<tr><td>recall_at_k</td><td>0.5960</td></tr></tbody></table><h3>Data quality validation summary</h3><table><thead><tr><th>Dataset</th><th>Status</th><th>Rows</th><th>Issues</th></tr></thead><tbody><tr><td>clickstream</td><td>OK</td><td>4000</td><td>0</td></tr>
+<tr><td>transactions</td><td>OK</td><td>800</td><td>0</td></tr>
+<tr><td>products</td><td>WARN</td><td>40</td><td>1</td></tr>
+<tr><td>sentiment</td><td>WARN</td><td>40</td><td>1</td></tr></tbody></table><h3>EDA Summary Plots</h3><figure><figcaption>Event Type Distribution</figcaption><img src="eda_plots/event_type_distribution.png" alt="Event Type Distribution"></figure><figure><figcaption>Item Popularity</figcaption><img src="eda_plots/item_popularity.png" alt="Item Popularity"></figure><figure><figcaption>Sparsity</figcaption><img src="eda_plots/sparsity.png" alt="Sparsity"></figure><figure><figcaption>Rating Distribution</figcaption><img src="eda_plots/rating_distribution.png" alt="Rating Distribution"></figure><figure><figcaption>Avg Price By Category</figcaption><img src="eda_plots/avg_price_by_category.png" alt="Avg Price By Category"></figure>
+    </section>
+    
+
+
+    <section>
+        <h2>6. Conclusion and Future Scope</h2>
+        <p>This POC demonstrates a fully modular, end-to-end data management pipeline covering ingestion, validation, preparation, feature engineering, a versioned feature store, model training/evaluation, and orchestration -- aligned with modern data-stack and MLOps practices. The trained SVD collaborative-filtering model achieves measurable Precision@10 / Recall@10 / NDCG@10 on held-out interactions, and the pipeline is fully re-runnable end-to-end via a single Prefect flow.</p><ul><li>Replace simulated clickstream/transaction sources with a real Kafka topic / OLTP CDC feed.</li>
+<li>Add content-based filtering using product text embeddings (title/description) blended with the collaborative model.</li>
+<li>Migrate raw storage to a real cloud data lake (S3/ADLS) with lifecycle policies.</li>
+<li>Adopt Feast for a production-grade online feature store with a low-latency serving layer.</li>
+<li>Schedule the Prefect flow on a deployment/work-pool for true periodic automation with alerting on failures.</li>
+<li>A/B test the recommendation model in a live RecoMart storefront and track online CTR/conversion uplift.</li></ul>
+    </section>
+    
+
+
+    <section>
+        <h2>7. Submission Links</h2>
+        <p class="links">Video walkthrough (Google Drive): <a href="&lt;PASTE GOOGLE DRIVE VIDEO WALKTHROUGH LINK HERE&gt;">&lt;PASTE GOOGLE DRIVE VIDEO WALKTHROUGH LINK HERE&gt;</a></p><p class="links">Project deliverables .zip (Google Drive): <a href="&lt;PASTE GOOGLE DRIVE PROJECT ZIP LINK HERE&gt;">&lt;PASTE GOOGLE DRIVE PROJECT ZIP LINK HERE&gt;</a></p>
+    </section>
+    
+
+<footer>RecoMart - End-to-End Data Management Pipeline for a Recommendation System</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+{
+  "generated_at": "2026-07-14T12:47:18.689471",
+  "datasets": [
+    {
+      "dataset": "clickstream",
+      "files_checked": [
+        "C:\\Darshan\\DMML\\data\\raw\\clickstream\\events\\2026-07-14\\clickstream_20260714T123912.csv",
+        "C:\\Darshan\\DMML\\data\\raw\\clickstream\\events\\2026-07-14\\clickstream_20260714T124713.csv"
+      ],
+      "status": "OK",
+      "issues": [],
+      "row_count": 4000,
+      "null_pct_by_column": {
+        "event_id": 0.0,
+        "user_id": 0.0,
+        "product_id": 0.0,
+        "event_type": 0.0,
+        "device": 0.0,
+        "session_id": 0.0,
+        "event_timestamp": 0.0
+      },
+      "duplicate_rows": 0,
+      "duplicate_primary_keys": 0,
+      "range_violations": {}
+    },
+    {
+      "dataset": "transactions",
+      "files_checked": [
+        "C:\\Darshan\\DMML\\data\\raw\\transactions\\purchases\\2026-07-14\\transactions_20260714T123927.csv",
+        "C:\\Darshan\\DMML\\data\\raw\\transactions\\purchases\\2026-07-14\\transactions_20260714T124713.csv"
+      ],
+      "status": "OK",
+      "issues": [],
+      "row_count": 800,
+      "null_pct_by_column": {
+        "transaction_id": 0.0,
+        "user_id": 0.0,
+        "product_id": 0.0,
+        "quantity": 0.0,
+        "unit_price": 0.0,
+        "total_amount": 0.0,
+        "rating": 53.25,
+        "transaction_timestamp": 0.0
+      },
+      "duplicate_rows": 0,
+      "duplicate_primary_keys": 0,
+      "range_violations": {}
+    },
+    {
+      "dataset": "products",
+      "files_checked": [
+        "C:\\Darshan\\DMML\\data\\raw\\products\\catalog\\2026-07-14\\products_20260714T123932.csv",
+        "C:\\Darshan\\DMML\\data\\raw\\products\\catalog\\2026-07-14\\products_20260714T124713.csv"
+      ],
+      "status": "WARN",
+      "issues": [
+        "20 duplicate 'product_id' values"
+      ],
+      "row_count": 40,
+      "null_pct_by_column": {
+        "product_id": 0.0,
+        "title": 0.0,
+        "price": 0.0,
+        "category": 0.0,
+        "description": 0.0,
+        "image": 0.0,
+        "rating_rate": 0.0,
+        "rating_count": 0.0
+      },
+      "duplicate_rows": 20,
+      "duplicate_primary_keys": 20,
+      "range_violations": {}
+    },
+    {
+      "dataset": "sentiment",
+      "files_checked": [
+        "C:\\Darshan\\DMML\\data\\raw\\sentiment\\scores\\2026-07-14\\sentiment_20260714T123940.csv",
+        "C:\\Darshan\\DMML\\data\\raw\\sentiment\\scores\\2026-07-14\\sentiment_20260714T124718.csv"
+      ],
+      "status": "WARN",
+      "issues": [
+        "20 duplicate 'product_id' values"
+      ],
+      "row_count": 40,
+      "null_pct_by_column": {
+        "product_id": 0.0,
+        "sentiment_score": 0.0,
+        "popularity_score": 0.0,
+        "scored_at": 0.0
+      },
+      "duplicate_rows": 0,
+      "duplicate_primary_keys": 20,
+      "range_violations": {}
+    }
+  ]
+}

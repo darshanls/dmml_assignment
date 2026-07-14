@@ -1,0 +1,71 @@
+# RecoMart Feature Store - Feature Metadata Registry
+# Each feature is versioned; retrieval functions in feature_store.py read
+# this file to resolve source table/column and apply the documented
+# transformation deterministically for both training and inference.
+
+version: 1
+
+entities:
+  user:
+    join_key: user_id
+  item:
+    join_key: product_id
+
+feature_views:
+  user_features_v1:
+    entity: user
+    source_table: dim_users
+    description: >
+      Behavioral features describing a user's engagement and spend on RecoMart.
+    features:
+      - name: total_events
+        dtype: int
+        transformation: "count(clickstream events) grouped by user_id"
+      - name: total_purchases
+        dtype: int
+        transformation: "count(transactions) grouped by user_id"
+      - name: total_spend
+        dtype: float
+        transformation: "sum(total_amount) grouped by user_id"
+      - name: avg_rating_given
+        dtype: float
+        transformation: "mean(rating) grouped by user_id, over explicit ratings only"
+      - name: activity_frequency
+        dtype: float
+        transformation: "total_events / distinct_active_days"
+
+  item_features_v1:
+    entity: item
+    source_table: dim_items
+    description: >
+      Content + popularity features describing a catalog item.
+    features:
+      - name: price_norm
+        dtype: float
+        transformation: "min-max normalized price"
+      - name: category_encoded
+        dtype: int
+        transformation: "label-encoded product category"
+      - name: avg_rating_item
+        dtype: float
+        transformation: "mean(rating) grouped by product_id"
+      - name: total_interactions
+        dtype: int
+        transformation: "count(clickstream events) grouped by product_id"
+      - name: sentiment_score
+        dtype: float
+        transformation: "external sentiment API score, range [-1, 1]"
+      - name: popularity_score
+        dtype: float
+        transformation: "external popularity API score, range [0, 1]"
+
+  item_similarity_v1:
+    entity: item
+    source_table: item_cooccurrence
+    description: >
+      Pairwise item-item similarity based on Jaccard index over co-occurring
+      user interaction sets. Used for item-to-item ("similar products") recs.
+    features:
+      - name: similarity_score
+        dtype: float
+        transformation: "Jaccard(users(item_a), users(item_b))"
