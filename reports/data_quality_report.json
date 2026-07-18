@@ -1,15 +1,14 @@
 {
-  "generated_at": "2026-07-14T12:47:18.689471",
+  "generated_at": "2026-07-18T15:41:58.926905",
   "datasets": [
     {
       "dataset": "clickstream",
       "files_checked": [
-        "C:\\Darshan\\DMML\\data\\raw\\clickstream\\events\\2026-07-14\\clickstream_20260714T123912.csv",
-        "C:\\Darshan\\DMML\\data\\raw\\clickstream\\events\\2026-07-14\\clickstream_20260714T124713.csv"
+        "C:\\Darshan\\DMML\\dmml_assignment\\dmml_assignment\\data\\raw\\clickstream\\events\\2026-07-18\\clickstream_20260718T154153.csv"
       ],
       "status": "OK",
       "issues": [],
-      "row_count": 4000,
+      "row_count": 2000,
       "null_pct_by_column": {
         "event_id": 0.0,
         "user_id": 0.0,
@@ -26,12 +25,11 @@
     {
       "dataset": "transactions",
       "files_checked": [
-        "C:\\Darshan\\DMML\\data\\raw\\transactions\\purchases\\2026-07-14\\transactions_20260714T123927.csv",
-        "C:\\Darshan\\DMML\\data\\raw\\transactions\\purchases\\2026-07-14\\transactions_20260714T124713.csv"
+        "C:\\Darshan\\DMML\\dmml_assignment\\dmml_assignment\\data\\raw\\transactions\\purchases\\2026-07-18\\transactions_20260718T154153.csv"
       ],
       "status": "OK",
       "issues": [],
-      "row_count": 800,
+      "row_count": 400,
       "null_pct_by_column": {
         "transaction_id": 0.0,
         "user_id": 0.0,
@@ -39,7 +37,7 @@
         "quantity": 0.0,
         "unit_price": 0.0,
         "total_amount": 0.0,
-        "rating": 53.25,
+        "rating": 48.0,
         "transaction_timestamp": 0.0
       },
       "duplicate_rows": 0,
@@ -49,14 +47,11 @@
     {
       "dataset": "products",
       "files_checked": [
-        "C:\\Darshan\\DMML\\data\\raw\\products\\catalog\\2026-07-14\\products_20260714T123932.csv",
-        "C:\\Darshan\\DMML\\data\\raw\\products\\catalog\\2026-07-14\\products_20260714T124713.csv"
+        "C:\\Darshan\\DMML\\dmml_assignment\\dmml_assignment\\data\\raw\\products\\catalog\\2026-07-18\\products_20260718T154153.csv"
       ],
-      "status": "WARN",
-      "issues": [
-        "20 duplicate 'product_id' values"
-      ],
-      "row_count": 40,
+      "status": "OK",
+      "issues": [],
+      "row_count": 20,
       "null_pct_by_column": {
         "product_id": 0.0,
         "title": 0.0,
@@ -67,21 +62,18 @@
         "rating_rate": 0.0,
         "rating_count": 0.0
       },
-      "duplicate_rows": 20,
-      "duplicate_primary_keys": 20,
+      "duplicate_rows": 0,
+      "duplicate_primary_keys": 0,
       "range_violations": {}
     },
     {
       "dataset": "sentiment",
       "files_checked": [
-        "C:\\Darshan\\DMML\\data\\raw\\sentiment\\scores\\2026-07-14\\sentiment_20260714T123940.csv",
-        "C:\\Darshan\\DMML\\data\\raw\\sentiment\\scores\\2026-07-14\\sentiment_20260714T124718.csv"
+        "C:\\Darshan\\DMML\\dmml_assignment\\dmml_assignment\\data\\raw\\sentiment\\scores\\2026-07-18\\sentiment_20260718T154158.csv"
       ],
-      "status": "WARN",
-      "issues": [
-        "20 duplicate 'product_id' values"
-      ],
-      "row_count": 40,
+      "status": "OK",
+      "issues": [],
+      "row_count": 20,
       "null_pct_by_column": {
         "product_id": 0.0,
         "sentiment_score": 0.0,
@@ -89,7 +81,7 @@
         "scored_at": 0.0
       },
       "duplicate_rows": 0,
-      "duplicate_primary_keys": 20,
+      "duplicate_primary_keys": 0,
       "range_violations": {}
     }
   ]
