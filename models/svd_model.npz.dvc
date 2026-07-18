@@ -1,0 +1,5 @@
+outs:
+- md5: 51aff39bad34878d59e9d399c9ceae90
+  size: 86492
+  hash: md5
+  path: svd_model.npz

@@ -29,8 +29,13 @@ Thumbs.db
 test*.pdf
 
 # Data/model artifacts are versioned via DVC, not Git (see .dvc pointer files)
-/data/raw
-/data/processed
-/data/features
-/warehouse
-/models
+/data/raw/*
+!/data/raw/*.dvc
+/data/processed/*
+!/data/processed/*.dvc
+/data/features/*
+!/data/features/*.dvc
+/warehouse/*
+!/warehouse/*.dvc
+/models/*
+!/models/*.dvc
