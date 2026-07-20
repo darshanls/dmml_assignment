@@ -55,7 +55,7 @@ def _table(headers, rows):
 
 def build_html():
     warehouse_stats = _fetch_warehouse_stats()
-    metrics = _fetch_model_metrics()
+    metrics_by_run = _fetch_model_metrics()
 
     quality_json = os.path.join(REPORTS_DIR, "data_quality_report.json")
     quality_rows = []
@@ -137,7 +137,7 @@ def build_html():
     "Engineer recommendation-ready features (activity frequency, average ratings, item co-occurrence) into a structured warehouse.",
     "Stand up a lightweight, versioned feature store serving both training and inference.",
     "Version raw/processed data and track transformation lineage.",
-    "Train and evaluate a collaborative-filtering recommendation model (Precision@K, Recall@K, NDCG@K), tracked via MLflow.",
+    "Train and evaluate both collaborative-filtering (SVD) and content-based (cosine similarity) recommendation models (Precision@K, Recall@K, NDCG@K), tracked via MLflow.",
     "Orchestrate the full pipeline end-to-end with automated retries and logging.",
 ]))}
 
@@ -160,7 +160,7 @@ def build_html():
     "Preparation: src/preparation/clean_and_prepare.py - dedup, missing-value handling, LabelEncoder/MinMaxScaler, EDA plots.",
     "Transformation: src/transformation/feature_engineering.py + schema.sql - user/item/co-occurrence features loaded into SQLite warehouse (warehouse/recomart.db).",
     "Feature Store: src/feature_store/feature_store.py + feature_registry.yaml - versioned, declarative feature metadata with offline/online retrieval.",
-    "Modeling: src/models/train_model.py - Truncated SVD collaborative filtering over a weighted implicit+explicit interaction matrix; src/models/inference.py - top-N recommendation interface.",
+    "Modeling: src/models/train_model.py - (1) Truncated SVD collaborative filtering over a weighted implicit+explicit interaction matrix, (2) content-based filtering via item-feature cosine similarity; src/models/inference.py - top-N recommendation interface supporting both model types.",
     "Orchestration: src/orchestration/pipeline_flow.py - Prefect @flow/@task DAG with retries and structured logging.",
     "Versioning: docs/VERSIONING.md - Git + DVC workflow for data/model lineage.",
 ]))}
@@ -169,8 +169,11 @@ def build_html():
     ("<h3>Warehouse table row counts (latest pipeline run)</h3>" + _table(["Table", "Row Count"], list(warehouse_stats.items())))
     if warehouse_stats else ""
 ) + (
-    ("<h3>Model evaluation metrics (MLflow-tracked, latest run)</h3>" + _table(["Metric", "Value"], [(k, f"{v:.4f}") for k, v in metrics.items()]))
-    if metrics else ""
+    ("<h3>Model evaluation metrics (MLflow-tracked, latest run per model)</h3>" + "".join(
+        f"<h4>{escape(run_name)}</h4>" + _table(["Metric", "Value"], [(k, f"{v:.4f}") for k, v in run_metrics.items()])
+        for run_name, run_metrics in metrics_by_run.items()
+    ))
+    if metrics_by_run else ""
 ) + (
     ("<h3>Data quality validation summary</h3>" + _table(["Dataset", "Status", "Rows", "Issues"], quality_rows))
     if quality_rows else ""
@@ -180,13 +183,13 @@ def build_html():
     "This POC demonstrates a fully modular, end-to-end data management pipeline "
     "covering ingestion, validation, preparation, feature engineering, a versioned "
     "feature store, model training/evaluation, and orchestration -- aligned with "
-    "modern data-stack and MLOps practices. The trained SVD collaborative-filtering "
-    "model achieves measurable Precision@10 / Recall@10 / NDCG@10 on held-out "
-    "interactions, and the pipeline is fully re-runnable end-to-end via a single "
-    "Prefect flow."
+    "modern data-stack and MLOps practices. Both the SVD collaborative-filtering "
+    "model and the content-based cosine-similarity model achieve measurable "
+    "Precision@10 / Recall@10 / NDCG@10 on held-out interactions, and the pipeline "
+    "is fully re-runnable end-to-end via a single Prefect flow."
 ) + _bullets([
     "Replace simulated clickstream/transaction sources with a real Kafka topic / OLTP CDC feed.",
-    "Add content-based filtering using product text embeddings (title/description) blended with the collaborative model.",
+    "Extend content-based filtering with product text embeddings (title/description) and hybrid blending with the collaborative model.",
     "Migrate raw storage to a real cloud data lake (S3/ADLS) with lifecycle policies.",
     "Adopt Feast for a production-grade online feature store with a low-latency serving layer.",
     "Schedule the Prefect flow on a deployment/work-pool for true periodic automation with alerting on failures.",

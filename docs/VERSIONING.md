@@ -4,10 +4,11 @@ RecoMart's pipeline separates **code** (versioned in Git) from **data/model
 artifacts** (versioned in DVC), with DVC pointer files (`.dvc`) checked into
 Git so every commit can reproduce the exact dataset/model used.
 
-> NOTE: For this POC environment, Git/DVC initialization was intentionally
-> left to be run by the developer (`git init`, `dvc init`) rather than
-> executed automatically, to avoid mutating global user/repo state without
-> explicit consent. The steps below are the exact workflow to run.
+> Git and DVC have already been initialized for this repository (`git init`,
+> `dvc init`), and an initial data/model snapshot has been committed (see
+> `git log` — commits "Initialize DVC" and "Track data/raw, processed,
+> features, warehouse db, and model artifacts via DVC"). The steps below
+> remain the exact workflow to run for every subsequent data/model refresh.
 
 ## One-time setup
 
@@ -34,8 +35,9 @@ dvc add data/processed
 dvc add data/features
 dvc add warehouse/recomart.db
 dvc add models/svd_model.npz
+dvc add models/content_model.npz
 
-git add data/raw.dvc data/processed.dvc data/features.dvc warehouse/recomart.db.dvc models/svd_model.npz.dvc
+git add data/raw.dvc data/processed.dvc data/features.dvc warehouse/recomart.db.dvc models/svd_model.npz.dvc models/content_model.npz.dvc
 git commit -m "Data snapshot: <date> - <n> clickstream events, <n> transactions"
 dvc push
 ```

@@ -29,11 +29,18 @@ commands/screens to show.
 
 **Say:**
 "This is RecoMart's end-to-end data management pipeline for a product
-recommendation system. It covers ingestion, storage, validation, preparation,
-feature engineering, a feature store, model training, and orchestration."
+recommendation system. RecoMart is an e-commerce startup that wants to
+increase conversion and cross-selling by personalizing recommendations from
+four data sources: clickstream logs, transaction history, a product catalog
+REST API, and an external sentiment/popularity scoring API. The pipeline
+covers all 10 required stages: ingestion, raw storage, validation,
+preparation, feature engineering, a feature store, versioning, model
+training/evaluation, and orchestration — end to end, re-runnable with one
+command, and fully logged for auditability."
 
-**Show:** `README.md` — scroll to the architecture diagram (Section 2) and
-the project structure tree (Section 3).
+**Show:** `README.md` — scroll to the Problem Statement (Section 1) showing
+the data sources table and evaluation metrics, the architecture diagram
+(Section 2), and the project structure tree (Section 3).
 
 ---
 
@@ -45,7 +52,9 @@ python -m venv .venv
 ```
 
 **Say:** "Dependencies are pinned in `requirements.txt` — pandas, scikit-learn,
-MLflow, Prefect, DVC, etc."
+MLflow, Prefect, and DVC, among others. The whole pipeline runs from a single
+virtual environment with no external infrastructure required, which keeps it
+reproducible on any machine."
 
 ---
 
@@ -58,10 +67,14 @@ MLflow, Prefect, DVC, etc."
 .venv\Scripts\python src\ingestion\ingest_sentiment_api.py
 ```
 
-**Say:** "Four sources are ingested: simulated clickstream and transaction
-logs, the live FakeStore REST API for the product catalog, and a simulated
-sentiment/popularity scoring API — all with retry logic via `tenacity` and
-structured logging."
+**Say:** "Four sources are ingested, covering the two required data types
+and more: simulated clickstream and transaction logs mimicking a live
+Kafka/OLTP feed, the live FakeStore REST API for the product catalog, and a
+retry-capable sentiment/popularity scoring client. Every ingestion script
+wraps its fetch call with `tenacity`-based exponential-backoff retries, logs
+success/failure to both console and a rotating log file, and writes into a
+partitioned raw data lake keyed by source, type, and date — so this is
+truly automated and periodic, not a one-off script."
 
 **Show:**
 - Console output showing `SUCCESS: wrote N rows to ...` lines.
@@ -77,9 +90,13 @@ structured logging."
 .venv\Scripts\python src\validation\generate_quality_report.py
 ```
 
-**Say:** "Validation checks missing values, duplicate primary keys, schema
-mismatches, and range checks — e.g. rating must be 1-5, sentiment score
-between -1 and 1."
+**Say:** "Validation is fully automated with a pandas-based check suite in
+`validate_data.py`: missing-value percentages per column, duplicate rows and
+duplicate primary keys, schema checks against the expected column list, and
+range/format checks — for example rating must be between 1 and 5, and
+sentiment score must fall between -1 and 1. Every dataset gets a status of
+OK, WARN, FAIL, or MISSING, and the results are written to a machine-readable
+JSON report before being rendered into the PDF you're seeing now."
 
 **Show:** Open `reports\Data_Quality_Report.pdf` — scroll through the
 per-dataset status, row counts, and any flagged issues.
@@ -92,9 +109,16 @@ per-dataset status, row counts, and any flagged issues.
 .venv\Scripts\python src\preparation\clean_and_prepare.py
 ```
 
-**Say:** "This stage deduplicates, handles missing values, label-encodes
-categorical fields, min-max normalizes numeric fields, and produces EDA
-plots covering interaction distributions, item popularity, and sparsity."
+**Say:** "This stage deduplicates every dataset, drops rows missing key
+identifiers, and specifically handles missing user-item interactions —
+transactions without an explicit rating are kept as implicit feedback rather
+than dropped, flagged with a `has_explicit_rating` column. Categorical
+attributes like product category, event type, and device are label-encoded,
+and numeric fields like price and transaction amount are min-max normalized.
+The EDA then surfaces interaction distributions by event type, item
+popularity, rating distribution, and — importantly — user-item matrix
+sparsity, which quantifies exactly how sparse the interaction matrix is
+before we feed it into the recommendation models."
 
 **Show:**
 - `data\processed\*.csv` files in File Explorer.
@@ -111,9 +135,16 @@ plots covering interaction distributions, item popularity, and sparsity."
 .venv\Scripts\python src\transformation\feature_engineering.py
 ```
 
-**Say:** "Features are engineered here: user activity frequency, average
-rating per user/item, and item-item Jaccard similarity based on
-co-occurring users — then loaded into a SQLite warehouse per `schema.sql`."
+**Say:** "Features are engineered here to directly support both
+collaborative and content-based recommendation models: user-side features
+like total events, total purchases, total spend, average rating given, and
+activity frequency (events per active day); item-side features like
+normalized price, encoded category, average rating received, total
+interactions, and the external sentiment/popularity scores; and an
+item-item co-occurrence table with Jaccard similarity based on shared user
+interaction sets. All of this is loaded into a SQLite warehouse using a
+declarative star-schema defined in `schema.sql`, with dimension tables for
+users and items and fact tables for interactions and transactions."
 
 **Show:** Open `warehouse\recomart.db` in a SQLite viewer — show
 `dim_users`, `dim_items`, `item_cooccurrence`, `fact_interactions`,
@@ -127,9 +158,17 @@ co-occurring users — then loaded into a SQLite warehouse per `schema.sql`."
 .venv\Scripts\python src\feature_store\feature_store.py
 ```
 
-**Say:** "A lightweight custom feature store reads a declarative
-`feature_registry.yaml` and serves both offline (training) and online
-(inference) retrieval from the same warehouse tables."
+**Say:** "Rather than standing up the full operational overhead of Feast
+for this POC, we built a lightweight custom feature store that mirrors its
+core contract: a declarative `feature_registry.yaml` documents every feature
+name, its source table, data type, and exact transformation logic, and is
+versioned with a top-level `version` field plus `_v1` suffixes on each
+feature view — so a future breaking change would ship as `_v2` without
+breaking reproducibility of past training runs. The `FeatureStore` class
+exposes `get_training_features` for full-table offline retrieval and
+`get_online_features` for row-level online retrieval by entity ID, both
+resolving through the same registry and warehouse tables, which is exactly
+what's demonstrated in the console output here."
 
 **Show:** Console output listing registered feature views and the sample
 training/online retrieval demo. Briefly show `docs\FEATURE_METADATA.md`.
@@ -143,9 +182,16 @@ git log --oneline
 dvc list . --dvc-only
 ```
 
-**Say:** "Code is versioned in Git; raw/processed data and model artifacts
-are versioned via DVC, with `.dvc` pointer files committed to Git so every
-commit can reproduce the exact dataset/model snapshot used."
+**Say:** "Code is versioned in Git; raw data, processed data, engineered
+features, the SQLite warehouse, and both trained model artifacts are
+versioned via DVC, with `.dvc` pointer files — each storing an MD5 hash of
+the tracked content — committed to Git. That means every Git commit can
+reproduce the exact dataset and model snapshot used at that point in time,
+and `git log -p` on a `.dvc` file gives a full lineage of every version.
+We're also tracking MLflow's run metadata — metrics, params, and tags — in
+Git directly, since those are small text files, while excluding the
+duplicate model-artifact copies MLflow keeps internally, since those are
+already versioned once via DVC."
 
 **Show:** Git commit history, and the `.dvc` pointer files (`data\raw.dvc`,
 `warehouse\recomart.db.dvc`, `models\svd_model.npz.dvc`) — briefly open one
@@ -159,29 +205,35 @@ to show the MD5 hash. Reference `docs\VERSIONING.md`.
 .venv\Scripts\python src\models\train_model.py
 ```
 
-**Say:** "A Truncated SVD collaborative-filtering model is trained on a
-weighted user-item interaction matrix combining implicit clickstream
-signals and explicit ratings. It's evaluated with Precision@10, Recall@10,
-and NDCG@10 on a per-user held-out split, and every run is tracked in
-MLflow."
+**Say:** "Two models are trained: (1) a Truncated SVD collaborative-filtering
+model on a weighted user-item interaction matrix combining implicit clickstream
+signals and explicit ratings, and (2) a content-based filtering model using
+item features (price, category, sentiment, popularity) with cosine similarity.
+Both are evaluated with Precision@10, Recall@10, and NDCG@10 on a per-user
+held-out split, and each run is tracked separately in MLflow."
 
 ```powershell
 .venv\Scripts\python -m mlflow ui --backend-store-uri mlruns
 ```
 
 **Show:** Open `http://127.0.0.1:5000` in a browser — show the
-`recomart_recommendation` experiment, the `svd_collaborative_filtering` run,
-its logged params (`n_components`, `top_k`, etc.) and metrics
-(`precision_at_k`, `recall_at_k`, `ndcg_at_k`).
+`recomart_recommendation` experiment with both runs:
+`svd_collaborative_filtering` and `content_based_filtering`, their
+logged params and metrics (`precision_at_k`, `recall_at_k`, `ndcg_at_k`).
 
-Then demo inference:
+Then demo inference with both models:
 
 ```powershell
 .venv\Scripts\python src\models\inference.py --user_id <a real user_id> --top_n 5
+.venv\Scripts\python src\models\inference.py --user_id <a real user_id> --top_n 5 --model_type content_based
 ```
 
-**Say:** "This is the deployable inference interface — given a user ID, it
-returns the top-N recommended product IDs with scores."
+**Say:** "This is the deployable inference interface — given a user ID and
+a model type flag, it returns the top-N recommended product IDs with scores.
+Both collaborative and content-based models are supported behind the same
+CLI, loading their respective serialized `.npz` artifacts and scoring in
+milliseconds, which is exactly the kind of interface a recommendation API
+endpoint would wrap."
 
 ---
 
@@ -191,10 +243,15 @@ returns the top-N recommended product IDs with scores."
 .venv\Scripts\python src\orchestration\pipeline_flow.py
 ```
 
-**Say:** "Finally, the entire pipeline — ingestion, validation, preparation,
-transformation, feature store, and training — is orchestrated as a single
-Prefect flow with per-task retries and structured logging, so it can be
-scheduled and monitored end-to-end."
+**Say:** "Finally, the entire pipeline — four parallel ingestion tasks,
+then validation, preparation, transformation, feature store, and training —
+is orchestrated as a single Prefect flow. Each stage is a `@task` with
+automatic retries and structured logging, and Prefect's dependency graph
+ensures validation only runs after all four ingestion tasks succeed, and
+each downstream stage only runs after its upstream stage completes. This is
+the DAG the assignment asks for: ingestion → validation → preparation →
+transformation → feature store → model training, fully automatable and
+schedulable via a Prefect deployment."
 
 **Show:** Console output as the flow executes: 4 parallel ingestion tasks,
 followed by validate → prepare → transform → feature_store → train. Point
@@ -207,8 +264,11 @@ result: ..." line.
 ## 11. Wrap-up (8:15 - 8:45)
 
 **Say:** "That's the full pipeline — from raw multi-source ingestion through
-to a trained, evaluated, and deployable recommendation model, fully
-versioned and orchestrated."
+validation, preparation, feature engineering, a versioned feature store, two
+trained and evaluated recommendation models, and a single-command Prefect
+orchestration, all fully versioned with Git and DVC. Every stage is modular,
+independently runnable, logged, and retry-safe, which is what lets this POC
+scale toward a production data platform for RecoMart."
 
 **Show:** Scroll through `reports\RecoMart_Project_Report.pdf` — Problem
 Statement, Objectives, Methodology, Results, and Conclusion/Future Scope

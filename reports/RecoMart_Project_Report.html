@@ -53,7 +53,7 @@
 <li>Engineer recommendation-ready features (activity frequency, average ratings, item co-occurrence) into a structured warehouse.</li>
 <li>Stand up a lightweight, versioned feature store serving both training and inference.</li>
 <li>Version raw/processed data and track transformation lineage.</li>
-<li>Train and evaluate a collaborative-filtering recommendation model (Precision@K, Recall@K, NDCG@K), tracked via MLflow.</li>
+<li>Train and evaluate both collaborative-filtering (SVD) and content-based (cosine similarity) recommendation models (Precision@K, Recall@K, NDCG@K), tracked via MLflow.</li>
 <li>Orchestrate the full pipeline end-to-end with automated retries and logging.</li></ul>
     </section>
     
@@ -73,7 +73,7 @@
 <li>Preparation: src/preparation/clean_and_prepare.py - dedup, missing-value handling, LabelEncoder/MinMaxScaler, EDA plots.</li>
 <li>Transformation: src/transformation/feature_engineering.py + schema.sql - user/item/co-occurrence features loaded into SQLite warehouse (warehouse/recomart.db).</li>
 <li>Feature Store: src/feature_store/feature_store.py + feature_registry.yaml - versioned, declarative feature metadata with offline/online retrieval.</li>
-<li>Modeling: src/models/train_model.py - Truncated SVD collaborative filtering over a weighted implicit+explicit interaction matrix; src/models/inference.py - top-N recommendation interface.</li>
+<li>Modeling: src/models/train_model.py - (1) Truncated SVD collaborative filtering over a weighted implicit+explicit interaction matrix, (2) content-based filtering via item-feature cosine similarity; src/models/inference.py - top-N recommendation interface supporting both model types.</li>
 <li>Orchestration: src/orchestration/pipeline_flow.py - Prefect @flow/@task DAG with retries and structured logging.</li>
 <li>Versioning: docs/VERSIONING.md - Git + DVC workflow for data/model lineage.</li></ul>
     </section>
@@ -82,14 +82,16 @@
 
     <section>
         <h2>5. Results and Output</h2>
-        <h3>Warehouse table row counts (latest pipeline run)</h3><table><thead><tr><th>Table</th><th>Row Count</th></tr></thead><tbody><tr><td>dim_users</td><td>495</td></tr>
+        <h3>Warehouse table row counts (latest pipeline run)</h3><table><thead><tr><th>Table</th><th>Row Count</th></tr></thead><tbody><tr><td>dim_users</td><td>500</td></tr>
 <tr><td>dim_items</td><td>20</td></tr>
-<tr><td>fact_interactions</td><td>2000</td></tr>
-<tr><td>fact_transactions</td><td>400</td></tr>
-<tr><td>item_cooccurrence</td><td>190</td></tr></tbody></table><h3>Model evaluation metrics (MLflow-tracked, latest run)</h3><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>explained_variance_ratio</td><td>0.9751</td></tr>
-<tr><td>ndcg_at_k</td><td>0.3220</td></tr>
-<tr><td>precision_at_k</td><td>0.0675</td></tr>
-<tr><td>recall_at_k</td><td>0.5508</td></tr></tbody></table><h3>Data quality validation summary</h3><table><thead><tr><th>Dataset</th><th>Status</th><th>Rows</th><th>Issues</th></tr></thead><tbody><tr><td>clickstream</td><td>OK</td><td>2000</td><td>0</td></tr>
+<tr><td>fact_interactions</td><td>6000</td></tr>
+<tr><td>fact_transactions</td><td>1200</td></tr>
+<tr><td>item_cooccurrence</td><td>190</td></tr></tbody></table><h3>Model evaluation metrics (MLflow-tracked, latest run per model)</h3><h4>svd_collaborative_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>explained_variance_ratio</td><td>0.9753</td></tr>
+<tr><td>ndcg_at_k</td><td>0.5338</td></tr>
+<tr><td>precision_at_k</td><td>0.1682</td></tr>
+<tr><td>recall_at_k</td><td>0.7047</td></tr></tbody></table><h4>content_based_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>ndcg_at_k</td><td>0.5704</td></tr>
+<tr><td>precision_at_k</td><td>0.1994</td></tr>
+<tr><td>recall_at_k</td><td>0.8520</td></tr></tbody></table><h3>Data quality validation summary</h3><table><thead><tr><th>Dataset</th><th>Status</th><th>Rows</th><th>Issues</th></tr></thead><tbody><tr><td>clickstream</td><td>OK</td><td>2000</td><td>0</td></tr>
 <tr><td>transactions</td><td>OK</td><td>400</td><td>0</td></tr>
 <tr><td>products</td><td>OK</td><td>20</td><td>0</td></tr>
 <tr><td>sentiment</td><td>OK</td><td>20</td><td>0</td></tr></tbody></table><h3>EDA Summary Plots</h3><figure><figcaption>Event Type Distribution</figcaption><img src="eda_plots/event_type_distribution.png" alt="Event Type Distribution"></figure><figure><figcaption>Item Popularity</figcaption><img src="eda_plots/item_popularity.png" alt="Item Popularity"></figure><figure><figcaption>Sparsity</figcaption><img src="eda_plots/sparsity.png" alt="Sparsity"></figure><figure><figcaption>Rating Distribution</figcaption><img src="eda_plots/rating_distribution.png" alt="Rating Distribution"></figure><figure><figcaption>Avg Price By Category</figcaption><img src="eda_plots/avg_price_by_category.png" alt="Avg Price By Category"></figure>
@@ -99,8 +101,8 @@
 
     <section>
         <h2>6. Conclusion and Future Scope</h2>
-        <p>This POC demonstrates a fully modular, end-to-end data management pipeline covering ingestion, validation, preparation, feature engineering, a versioned feature store, model training/evaluation, and orchestration -- aligned with modern data-stack and MLOps practices. The trained SVD collaborative-filtering model achieves measurable Precision@10 / Recall@10 / NDCG@10 on held-out interactions, and the pipeline is fully re-runnable end-to-end via a single Prefect flow.</p><ul><li>Replace simulated clickstream/transaction sources with a real Kafka topic / OLTP CDC feed.</li>
-<li>Add content-based filtering using product text embeddings (title/description) blended with the collaborative model.</li>
+        <p>This POC demonstrates a fully modular, end-to-end data management pipeline covering ingestion, validation, preparation, feature engineering, a versioned feature store, model training/evaluation, and orchestration -- aligned with modern data-stack and MLOps practices. Both the SVD collaborative-filtering model and the content-based cosine-similarity model achieve measurable Precision@10 / Recall@10 / NDCG@10 on held-out interactions, and the pipeline is fully re-runnable end-to-end via a single Prefect flow.</p><ul><li>Replace simulated clickstream/transaction sources with a real Kafka topic / OLTP CDC feed.</li>
+<li>Extend content-based filtering with product text embeddings (title/description) and hybrid blending with the collaborative model.</li>
 <li>Migrate raw storage to a real cloud data lake (S3/ADLS) with lifecycle policies.</li>
 <li>Adopt Feast for a production-grade online feature store with a low-latency serving layer.</li>
 <li>Schedule the Prefect flow on a deployment/work-pool for true periodic automation with alerting on failures.</li>

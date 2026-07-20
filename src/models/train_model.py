@@ -1,12 +1,14 @@
 """
 Model training and evaluation stage.
 
-Trains a collaborative-filtering recommendation model using Truncated SVD
-matrix factorization over the user-item interaction matrix (implicit
-feedback derived from clickstream + explicit ratings from transactions).
+Trains two recommendation models:
+  1. Collaborative Filtering (Truncated SVD) over the user-item interaction
+     matrix (implicit clickstream signals + explicit ratings).
+  2. Content-Based Filtering using item feature vectors (category, price,
+     sentiment, popularity, rating) with cosine similarity.
 
-Evaluates with Precision@K, Recall@K and NDCG@K on a held-out split, and
-logs parameters/metrics/artifacts to MLflow for full experiment tracking.
+Both are evaluated with Precision@K, Recall@K and NDCG@K on a held-out
+split, and logged to MLflow for full experiment tracking.
 
 Usage:
     python src/models/train_model.py
@@ -19,7 +21,9 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.decomposition import TruncatedSVD
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "ingestion"))
 from common import get_logger, PROJECT_ROOT  # noqa: E402
@@ -126,6 +130,45 @@ def precision_recall_ndcg_at_k(test_matrix, scores, k=TOP_K):
     }
 
 
+def build_content_scores(users, items, user_idx, item_idx, train_matrix):
+    """Content-based filtering: recommend items similar to those each user interacted with."""
+    item_features_path = os.path.join(FEATURES_DIR, "item_features.csv")
+    item_features = pd.read_csv(item_features_path)
+
+    feature_cols = ["price_norm", "category_encoded", "avg_rating_item",
+                    "sentiment_score", "popularity_score"]
+    for col in feature_cols:
+        if col not in item_features.columns:
+            item_features[col] = 0.0
+
+    item_features = item_features.dropna(subset=["product_id"])
+    item_features[feature_cols] = item_features[feature_cols].fillna(0.0)
+
+    scaler = MinMaxScaler()
+    item_features[feature_cols] = scaler.fit_transform(item_features[feature_cols])
+
+    item_feature_matrix = np.zeros((len(items), len(feature_cols)))
+    for _, row in item_features.iterrows():
+        pid = row["product_id"]
+        if pid in item_idx:
+            item_feature_matrix[item_idx[pid]] = row[feature_cols].values
+
+    item_sim = cosine_similarity(item_feature_matrix)
+
+    train_csr = train_matrix.tocsr()
+    scores = np.zeros((len(users), len(items)))
+    for u in range(len(users)):
+        interacted = train_csr[u].indices
+        if len(interacted) == 0:
+            continue
+        weights = np.array(train_csr[u].data)
+        weighted_sim = weights.dot(item_sim[interacted])
+        scores[u] = weighted_sim
+
+    scores[train_matrix.nonzero()] = -np.inf
+    return scores, item_feature_matrix, item_sim
+
+
 def run():
     logger.info("Starting model training run")
     matrix, users, items, user_idx, item_idx, combined = build_interaction_matrix()
@@ -135,8 +178,12 @@ def run():
     test_matrix = matrix_from_df(test_df, users, items, user_idx, item_idx)
 
     n_components = min(N_COMPONENTS, min(train_matrix.shape) - 1)
+    results = {}
 
+    # ---- Model 1: Collaborative Filtering (Truncated SVD) ----
     with mlflow.start_run(run_name="svd_collaborative_filtering") as run_ctx:
+        mlflow.log_param("model_type", "collaborative_filtering")
+        mlflow.log_param("algorithm", "TruncatedSVD")
         mlflow.log_param("n_components", n_components)
         mlflow.log_param("top_k", TOP_K)
         mlflow.log_param("n_users", len(users))
@@ -148,16 +195,15 @@ def run():
         item_factors = model.components_.T
 
         scores = user_factors.dot(item_factors.T)
-        # Mask out items the user already interacted with in the training set
         scores[train_matrix.nonzero()] = -np.inf
 
-        metrics = precision_recall_ndcg_at_k(test_matrix, scores, k=TOP_K)
-        logger.info("Evaluation metrics: %s", metrics)
+        cf_metrics = precision_recall_ndcg_at_k(test_matrix, scores, k=TOP_K)
+        logger.info("Collaborative filtering metrics: %s", cf_metrics)
 
         mlflow.log_metrics({
-            "precision_at_k": metrics["precision_at_k"],
-            "recall_at_k": metrics["recall_at_k"],
-            "ndcg_at_k": metrics["ndcg_at_k"],
+            "precision_at_k": cf_metrics["precision_at_k"],
+            "recall_at_k": cf_metrics["recall_at_k"],
+            "ndcg_at_k": cf_metrics["ndcg_at_k"],
             "explained_variance_ratio": float(model.explained_variance_ratio_.sum()),
         })
 
@@ -172,10 +218,52 @@ def run():
         mlflow.log_artifact(model_path)
 
         logger.info(
-            "SUCCESS: model trained and logged to MLflow (run_id=%s), metrics=%s",
-            run_ctx.info.run_id, metrics,
+            "SUCCESS: collaborative filtering model logged to MLflow (run_id=%s)",
+            run_ctx.info.run_id,
         )
-        return {"run_id": run_ctx.info.run_id, **metrics}
+        results["collaborative"] = {"run_id": run_ctx.info.run_id, **cf_metrics}
+
+    # ---- Model 2: Content-Based Filtering ----
+    with mlflow.start_run(run_name="content_based_filtering") as run_ctx:
+        mlflow.log_param("model_type", "content_based_filtering")
+        mlflow.log_param("algorithm", "cosine_similarity")
+        mlflow.log_param("features_used", "price_norm,category_encoded,avg_rating_item,sentiment_score,popularity_score")
+        mlflow.log_param("top_k", TOP_K)
+        mlflow.log_param("n_users", len(users))
+        mlflow.log_param("n_items", len(items))
+        mlflow.log_param("test_size", 0.2)
+
+        cb_scores, item_feature_matrix, item_sim = build_content_scores(
+            users, items, user_idx, item_idx, train_matrix
+        )
+
+        cb_metrics = precision_recall_ndcg_at_k(test_matrix, cb_scores, k=TOP_K)
+        logger.info("Content-based filtering metrics: %s", cb_metrics)
+
+        mlflow.log_metrics({
+            "precision_at_k": cb_metrics["precision_at_k"],
+            "recall_at_k": cb_metrics["recall_at_k"],
+            "ndcg_at_k": cb_metrics["ndcg_at_k"],
+        })
+
+        cb_model_path = os.path.join(MODELS_DIR, "content_model.npz")
+        np.savez(
+            cb_model_path,
+            item_feature_matrix=item_feature_matrix,
+            item_sim=item_sim,
+            users=np.array(users, dtype=object),
+            items=np.array(items, dtype=object),
+        )
+        mlflow.log_artifact(cb_model_path)
+
+        logger.info(
+            "SUCCESS: content-based model logged to MLflow (run_id=%s)",
+            run_ctx.info.run_id,
+        )
+        results["content_based"] = {"run_id": run_ctx.info.run_id, **cb_metrics}
+
+    logger.info("All models trained. Results: %s", results)
+    return results
 
 
 if __name__ == "__main__":

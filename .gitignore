@@ -9,15 +9,16 @@ dist/
 *.egg-info/
 .ipynb_checkpoints/
 
-# MLflow tracking store / DVC cache (metadata summarized in reports/ instead)
-mlruns/
-mlflow.db
+# DVC cache
 .dvc/tmp/
 .dvc/cache/
 dvc_storage/
+mlflow.db
 
-# Logs
-logs/*.log
+# MLflow run artifacts duplicate model binaries already versioned via DVC
+# (models/*.dvc); keep metrics/params/tags (small text files) tracked in Git
+# as the "tracked model metadata" deliverable for Task 9.
+mlruns/*/*/artifacts/
 
 # OS / IDE
 .DS_Store

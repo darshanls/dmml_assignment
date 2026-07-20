@@ -109,6 +109,7 @@ python -m venv .venv
 
 .venv\Scripts\python src\models\train_model.py
 .venv\Scripts\python src\models\inference.py --user_id U0001 --top_n 5
+.venv\Scripts\python src\models\inference.py --user_id U0001 --top_n 5 --model_type content_based
 ```
 
 **View MLflow experiment tracking UI**:
@@ -146,12 +147,25 @@ and online (inference) retrieval from the same versioned registry.
 
 ## 9. Model Training & Evaluation (Task 9)
 
-`src/models/train_model.py` builds a weighted user-item interaction matrix
-(implicit clickstream signals + explicit ratings), trains a **Truncated SVD**
-collaborative-filtering model, evaluates **Precision@10 / Recall@10 / NDCG@10**
-on a per-user held-out split, and logs parameters/metrics/model artifacts to
-**MLflow** (`mlruns/`). `src/models/inference.py` provides the deployable
-top-N recommendation interface.
+`src/models/train_model.py` trains two recommendation models:
+1. **Collaborative Filtering (Truncated SVD)** — builds a weighted user-item
+   interaction matrix (implicit clickstream signals + explicit ratings) and
+   factorises it via SVD.
+2. **Content-Based Filtering (Cosine Similarity)** — constructs item feature
+   vectors from `price_norm`, `category_encoded`, `avg_rating_item`,
+   `sentiment_score`, and `popularity_score`, computes item-item cosine
+   similarity, and scores unseen items by similarity to each user's
+   interaction history.
+
+Both are evaluated with **Precision@10 / Recall@10 / NDCG@10** on a per-user
+held-out split, and logged as separate MLflow runs (`mlruns/`).
+`src/models/inference.py` provides the deployable top-N recommendation
+interface for both model types:
+
+```powershell
+.venv\Scripts\python src\models\inference.py --user_id U0001 --top_n 5
+.venv\Scripts\python src\models\inference.py --user_id U0001 --top_n 5 --model_type content_based
+```
 
 ## 10. Orchestration (Task 10)
 
