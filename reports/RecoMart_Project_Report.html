@@ -82,16 +82,16 @@
 
     <section>
         <h2>5. Results and Output</h2>
-        <h3>Warehouse table row counts (latest pipeline run)</h3><table><thead><tr><th>Table</th><th>Row Count</th></tr></thead><tbody><tr><td>dim_users</td><td>500</td></tr>
+        <h3>Warehouse table row counts (latest pipeline run)</h3><table><thead><tr><th>Table</th><th>Row Count</th></tr></thead><tbody><tr><td>dim_users</td><td>496</td></tr>
 <tr><td>dim_items</td><td>20</td></tr>
-<tr><td>fact_interactions</td><td>6000</td></tr>
-<tr><td>fact_transactions</td><td>1200</td></tr>
-<tr><td>item_cooccurrence</td><td>190</td></tr></tbody></table><h3>Model evaluation metrics (MLflow-tracked, latest run per model)</h3><h4>svd_collaborative_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>explained_variance_ratio</td><td>0.9753</td></tr>
-<tr><td>ndcg_at_k</td><td>0.5338</td></tr>
-<tr><td>precision_at_k</td><td>0.1682</td></tr>
-<tr><td>recall_at_k</td><td>0.7047</td></tr></tbody></table><h4>content_based_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>ndcg_at_k</td><td>0.5704</td></tr>
-<tr><td>precision_at_k</td><td>0.1994</td></tr>
-<tr><td>recall_at_k</td><td>0.8520</td></tr></tbody></table><h3>Data quality validation summary</h3><table><thead><tr><th>Dataset</th><th>Status</th><th>Rows</th><th>Issues</th></tr></thead><tbody><tr><td>clickstream</td><td>OK</td><td>2000</td><td>0</td></tr>
+<tr><td>fact_interactions</td><td>2000</td></tr>
+<tr><td>fact_transactions</td><td>400</td></tr>
+<tr><td>item_cooccurrence</td><td>190</td></tr></tbody></table><h3>Model evaluation metrics (MLflow-tracked, latest run per model)</h3><h4>svd_collaborative_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>explained_variance_ratio</td><td>0.9785</td></tr>
+<tr><td>ndcg_at_k</td><td>0.3499</td></tr>
+<tr><td>precision_at_k</td><td>0.0805</td></tr>
+<tr><td>recall_at_k</td><td>0.6469</td></tr></tbody></table><h4>content_based_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>ndcg_at_k</td><td>0.2904</td></tr>
+<tr><td>precision_at_k</td><td>0.0706</td></tr>
+<tr><td>recall_at_k</td><td>0.5811</td></tr></tbody></table><h3>Data quality validation summary</h3><table><thead><tr><th>Dataset</th><th>Status</th><th>Rows</th><th>Issues</th></tr></thead><tbody><tr><td>clickstream</td><td>OK</td><td>2000</td><td>0</td></tr>
 <tr><td>transactions</td><td>OK</td><td>400</td><td>0</td></tr>
 <tr><td>products</td><td>OK</td><td>20</td><td>0</td></tr>
 <tr><td>sentiment</td><td>OK</td><td>20</td><td>0</td></tr></tbody></table><h3>EDA Summary Plots</h3><figure><figcaption>Event Type Distribution</figcaption><img src="eda_plots/event_type_distribution.png" alt="Event Type Distribution"></figure><figure><figcaption>Item Popularity</figcaption><img src="eda_plots/item_popularity.png" alt="Item Popularity"></figure><figure><figcaption>Sparsity</figcaption><img src="eda_plots/sparsity.png" alt="Sparsity"></figure><figure><figcaption>Rating Distribution</figcaption><img src="eda_plots/rating_distribution.png" alt="Rating Distribution"></figure><figure><figcaption>Avg Price By Category</figcaption><img src="eda_plots/avg_price_by_category.png" alt="Avg Price By Category"></figure>

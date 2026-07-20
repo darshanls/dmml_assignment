@@ -23,7 +23,7 @@ sentiment/popularity signals.
 **Pipeline outputs**:
 - Clean datasets for EDA → `data/processed/`
 - Engineered features for collaborative/content-based models → `data/features/`, `warehouse/recomart.db`
-- Deployable model + inference interface → `models/svd_model.npz`, `src/models/inference.py`
+- Deployable models + inference interface → `models/svd_model.npz`, `models/content_model.npz`, `src/models/inference.py`
 
 **Evaluation metrics**: Precision@K, Recall@K, NDCG@K (K=10), tracked in MLflow.
 
@@ -50,7 +50,8 @@ DMML/
 ├── warehouse/
 │   └── recomart.db        # SQLite feature warehouse (see schema.sql)
 ├── models/
-│   └── svd_model.npz        # trained collaborative-filtering model
+│   ├── svd_model.npz        # trained collaborative-filtering model
+│   └── content_model.npz    # trained content-based filtering model
 ├── mlruns/                    # MLflow experiment tracking store
 ├── logs/
 │   └── ingestion.log            # rotating ingestion logs

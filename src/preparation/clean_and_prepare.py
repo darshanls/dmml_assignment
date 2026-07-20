@@ -28,12 +28,18 @@ os.makedirs(PROCESSED_DIR, exist_ok=True)
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 
-def _load_all(source: str, data_type: str, ext="csv") -> pd.DataFrame:
+def _load_latest(source: str, data_type: str, ext="csv") -> pd.DataFrame:
+    """
+    Load the latest ingested file for a source/data_type from the most
+    recent date partition. Files are timestamped, so lexicographic sort
+    picks the most recent run and avoids stacking multiple same-day
+    batches as duplicate rows.
+    """
     pattern = os.path.join(RAW_DATA_DIR, source, data_type, "*", f"*.{ext}")
     files = sorted(glob.glob(pattern))
     if not files:
         raise FileNotFoundError(f"No raw files found for {source}/{data_type}")
-    return pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+    return pd.read_csv(files[-1])
 
 
 def clean_clickstream(df: pd.DataFrame) -> pd.DataFrame:
@@ -152,10 +158,10 @@ def run_eda(clickstream: pd.DataFrame, transactions: pd.DataFrame, products: pd.
 def run():
     logger.info("Starting data preparation run")
 
-    clickstream = clean_clickstream(_load_all("clickstream", "events"))
-    transactions = clean_transactions(_load_all("transactions", "purchases"))
-    products = clean_products(_load_all("products", "catalog"))
-    sentiment = clean_sentiment(_load_all("sentiment", "scores"))
+    clickstream = clean_clickstream(_load_latest("clickstream", "events"))
+    transactions = clean_transactions(_load_latest("transactions", "purchases"))
+    products = clean_products(_load_latest("products", "catalog"))
+    sentiment = clean_sentiment(_load_latest("sentiment", "scores"))
 
     clickstream.to_csv(os.path.join(PROCESSED_DIR, "clickstream_clean.csv"), index=False)
     transactions.to_csv(os.path.join(PROCESSED_DIR, "transactions_clean.csv"), index=False)

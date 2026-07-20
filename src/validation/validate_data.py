@@ -34,12 +34,18 @@ def _latest_files(source: str, data_type: str, ext: str = "csv"):
 
 
 def _latest_partition_files(source: str, data_type: str, ext: str = "csv"):
-    """Return all files from the most recent date-partition directory."""
+    """
+    Return the latest file from the most recent date-partition directory.
+    Files are named with embedded timestamps, so lexicographic sort gives
+    the most recent ingestion run and avoids treating multiple same-day
+    batches as duplicate data.
+    """
     files = _latest_files(source, data_type, ext)
     if not files:
         return []
     latest_date_dir = os.path.dirname(files[-1])
-    return sorted(glob.glob(os.path.join(latest_date_dir, f"*.{ext}")))
+    partition_files = sorted(glob.glob(os.path.join(latest_date_dir, f"*.{ext}")))
+    return [partition_files[-1]] if partition_files else []
 
 
 DATASET_SPECS = {
