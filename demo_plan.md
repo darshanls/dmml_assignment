@@ -51,19 +51,29 @@ runs from a single virtual environment — no external infrastructure needed."
 
 ---
 
-## 3. Data Ingestion — Task 2 & 3 (0:50 - 1:50)
+## 3. Run the Full Pipeline — Tasks 2-9 (0:50 - 2:00)
 
 ```powershell
-.venv\Scripts\python src\ingestion\ingest_clickstream.py
-.venv\Scripts\python src\ingestion\ingest_transactions.py
-.venv\Scripts\python src\ingestion\ingest_products_api.py
-.venv\Scripts\python src\ingestion\ingest_sentiment_api.py
+.venv\Scripts\python src\orchestration\pipeline_flow.py
 ```
 
-**Say:** "Four sources: simulated clickstream and transactions, the live
-FakeStore product API, and a sentiment scoring client. Each script has
-retry logic, structured logging, and writes to a date-partitioned raw
-data lake."
+**Say:** "One Prefect flow executes the whole pipeline: four parallel
+ingestion tasks, then validation, cleaning + EDA, feature engineering,
+feature store demo, and model training — all with retries and dependency
+ordering. The per-stage commands below are the same logic exposed as
+individual scripts, but you do not need to run them for the demo."
+
+**Show:** Terminal output scrolling through each task and ending with
+`Pipeline finished. Model result: ...`.
+
+---
+
+## 4. Data Ingestion Output — Task 2 & 3 (2:00 - 2:20)
+
+**Say:** "Four sources are ingested inside the single flow: simulated
+clickstream and transactions, the live FakeStore product API, and a
+sentiment scoring client. Each script has retry logic, structured logging,
+and writes to a date-partitioned raw data lake."
 
 **Show:**
 - Console output showing `SUCCESS: wrote N rows to ...` lines.
@@ -72,12 +82,7 @@ data lake."
 
 ---
 
-## 4. Data Validation — Task 4 (1:50 - 2:40)
-
-```powershell
-.venv\Scripts\python src\validation\validate_data.py
-.venv\Scripts\python src\validation\generate_quality_report.py
-```
+## 5. Data Validation — Task 4 (2:20 - 2:50)
 
 **Say:** "The generator injects ~4% dirty rows — missing IDs, bad
 timestamps, negative prices, text in numeric fields — so validation has
@@ -90,11 +95,7 @@ per-dataset status, row counts, and any flagged issues.
 
 ---
 
-## 5. Data Preparation & EDA — Task 5 (2:40 - 3:40)
-
-```powershell
-.venv\Scripts\python src\preparation\clean_and_prepare.py
-```
+## 6. Data Preparation & EDA — Task 5 (2:50 - 3:20)
 
 **Say:** "Cleaning handles all injected dirty data — drops duplicates,
 coerces bad types, removes invalid rows — with before/after logging.
@@ -113,11 +114,7 @@ Categoricals are label-encoded, numerics min-max normalized. EDA produces
 
 ---
 
-## 6. Feature Engineering & Transformation — Task 6 (3:40 - 4:30)
-
-```powershell
-.venv\Scripts\python src\transformation\feature_engineering.py
-```
+## 7. Feature Engineering & Transformation — Task 6 (3:20 - 3:50)
 
 **Say:** "User features include activity frequency, spend, recency, and
 purchase-to-view conversion. Item features include Bayesian weighted
@@ -131,11 +128,7 @@ warehouse using a star-schema."
 
 ---
 
-## 7. Feature Store — Task 7 (4:30 - 5:10)
-
-```powershell
-.venv\Scripts\python src\feature_store\feature_store.py
-```
+## 8. Feature Store — Task 7 (3:50 - 4:10)
 
 **Say:** "A lightweight custom feature store with a versioned YAML
 registry. It supports offline retrieval for training and online retrieval
@@ -146,7 +139,7 @@ training/online retrieval demo. Briefly show `docs\FEATURE_METADATA.md`.
 
 ---
 
-## 8. Data Versioning & Lineage — Task 8 (5:10 - 5:50)
+## 9. Data Versioning & Lineage — Task 8 (4:10 - 4:30)
 
 ```powershell
 git log --oneline
@@ -164,11 +157,7 @@ to show the MD5 hash. Reference `docs\VERSIONING.md`.
 
 ---
 
-## 9. Model Training & Evaluation — Task 9 (5:50 - 7:00)
-
-```powershell
-.venv\Scripts\python src\models\train_model.py
-```
+## 10. Model Training & Evaluation — Task 9 (4:30 - 5:30)
 
 **Say:** "Two models: SVD collaborative filtering on a weighted interaction
 matrix, and content-based filtering with cosine similarity. Both evaluated
@@ -195,25 +184,22 @@ with scores — works for both model types."
 
 ---
 
-## 10. Pipeline Orchestration — Task 10 (7:00 - 8:15)
+## 11. Pipeline Orchestration Summary — Task 10 (5:30 - 5:50)
 
-```powershell
-.venv\Scripts\python src\orchestration\pipeline_flow.py
-```
+**Say:** "The whole pipeline is orchestrated as a single Prefect flow with
+retries and dependency ordering: ingest → validate → prepare → transform
+→ feature store → train. Fully schedulable via a Prefect deployment.
+Each stage is also independently runnable for debugging or targeted
+re-runs."
 
-**Say:** "The whole pipeline runs as a single Prefect flow with retries
-and dependency ordering: ingest → validate → prepare → transform →
-feature store → train. Fully schedulable via Prefect deployment."
-
-**Show:** Console output as the flow executes: 4 parallel ingestion tasks,
-followed by validate → prepare → transform → feature_store → train. Point
-out the `retries=2, retry_delay_seconds=5` config in
-`src\orchestration\pipeline_flow.py` and the final "Pipeline finished. Model
-result: ..." line.
+**Show:** Open `src\orchestration\pipeline_flow.py` and point out the
+`@flow`, `@task` decorators and the `retries=2, retry_delay_seconds=5`
+config. Reference the final `Pipeline finished. Model result: ...` line
+in the terminal output.
 
 ---
 
-## 11. Wrap-up (8:15 - 8:45)
+## 12. Wrap-up (5:50 - 6:20)
 
 **Say:** "That's the full pipeline — ingestion through model training,
 versioned with Git and DVC, orchestrated with Prefect. Every stage is
