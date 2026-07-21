@@ -125,17 +125,29 @@ python -m venv .venv
 
 ## 6. Data Quality & Validation (Task 4)
 
-`src/validation/validate_data.py` checks each ingested dataset for missing
-values, duplicate primary keys, schema mismatches, and range/format
-violations (e.g. `rating` must be 1-5, `sentiment_score` must be in [-1,1]).
+`src/ingestion/data_generator.py` deliberately injects ~4% dirty rows and
+~2% exact duplicates into clickstream and transaction data — missing fields,
+malformed timestamps, out-of-range values, invalid categoricals, negative
+prices, non-numeric ratings — so the validation stage has realistic issues
+to catch.
+
+`src/validation/validate_data.py` checks each ingested dataset for:
+- Missing values (per-column null %)
+- Duplicate rows and duplicate primary keys
+- Schema mismatches (expected vs. actual columns)
+- Range/format violations (e.g. `rating` 1-5, `sentiment_score` [-1,1])
+- **Timestamp format errors** — detects unparseable dates
+- **Allowed-value checks** — validates `event_type` and `device` against known sets
+- **Non-numeric value detection** — catches text in numeric columns like `rating`
+
 Results are written to `reports/data_quality_report.json` and rendered to
 `reports/Data_Quality_Report.pdf`.
 
 ## 7. Feature Engineering (Task 6)
 
 `src/transformation/feature_engineering.py` computes:
-- **User features**: `total_events`, `total_purchases`, `total_spend`, `avg_rating_given`, `activity_frequency`
-- **Item features**: `price_norm`, `category_encoded`, `avg_rating_item`, `total_interactions`, `sentiment_score`, `popularity_score`
+- **User features**: `total_events`, `total_purchases`, `total_spend`, `avg_rating_given`, `activity_frequency`, `total_views`, `unique_sessions`, `avg_spend_per_txn`, `purchase_to_view_ratio` (conversion), `days_since_last_active` (recency)
+- **Item features**: `price_norm`, `category_encoded`, `avg_rating_item`, `rating_count`, `weighted_avg_rating` (Bayesian shrinkage towards global mean), `total_interactions`, `total_purchases`, `total_views`, `unique_users`, `item_conversion_rate` (purchases/views), `sentiment_score`, `popularity_score`
 - **Item-item co-occurrence/similarity**: Jaccard similarity over shared user interaction sets
 
 ...and loads them into the SQLite warehouse per `src/transformation/schema.sql`.
@@ -188,6 +200,10 @@ model artifacts are `.gitignore`'d and intended to be tracked via `dvc add`
 - Clickstream and transaction data are **synthetically generated** per run
   (`src/ingestion/data_generator.py`) to simulate a live source system,
   since no production Kafka/OLTP system is available for this POC.
+- The generator **deliberately injects dirty data** (~4% invalid rows, ~2%
+  duplicates) — missing IDs, malformed timestamps, out-of-range ratings,
+  negative prices, non-numeric values — so the validation, preparation, and
+  feature engineering stages demonstrate realistic data quality handling.
 - Product catalog ingestion calls the **real** FakeStore REST API
   (`https://fakestoreapi.com/products`).
 - Sentiment/popularity ingestion simulates an external scoring API call

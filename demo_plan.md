@@ -90,13 +90,18 @@ truly automated and periodic, not a one-off script."
 .venv\Scripts\python src\validation\generate_quality_report.py
 ```
 
-**Say:** "Validation is fully automated with a pandas-based check suite in
-`validate_data.py`: missing-value percentages per column, duplicate rows and
-duplicate primary keys, schema checks against the expected column list, and
-range/format checks — for example rating must be between 1 and 5, and
-sentiment score must fall between -1 and 1. Every dataset gets a status of
-OK, WARN, FAIL, or MISSING, and the results are written to a machine-readable
-JSON report before being rendered into the PDF you're seeing now."
+**Say:** "Because the data generator deliberately injects ~4% dirty rows
+and ~2% duplicates — missing IDs, malformed timestamps, out-of-range
+ratings, negative prices, non-numeric values like 'five' in the rating
+column — the validation stage now has realistic issues to surface.
+`validate_data.py` runs a comprehensive check suite: missing-value
+percentages per column, duplicate rows and duplicate primary keys, schema
+checks, range/format violations, timestamp format validation that catches
+unparseable dates, allowed-value checks that flag invalid event types or
+device names, and non-numeric detection in numeric fields. Every dataset
+gets a status of OK, WARN, FAIL, or MISSING, and the results are written
+to a machine-readable JSON report before being rendered into the PDF
+you're seeing now."
 
 **Show:** Open `reports\Data_Quality_Report.pdf` — scroll through the
 per-dataset status, row counts, and any flagged issues.
@@ -109,21 +114,27 @@ per-dataset status, row counts, and any flagged issues.
 .venv\Scripts\python src\preparation\clean_and_prepare.py
 ```
 
-**Say:** "This stage deduplicates every dataset, drops rows missing key
-identifiers, and specifically handles missing user-item interactions —
-transactions without an explicit rating are kept as implicit feedback rather
-than dropped, flagged with a `has_explicit_rating` column. Categorical
-attributes like product category, event type, and device are label-encoded,
-and numeric fields like price and transaction amount are min-max normalized.
-The EDA then surfaces interaction distributions by event type, item
-popularity, rating distribution, and — importantly — user-item matrix
-sparsity, which quantifies exactly how sparse the interaction matrix is
-before we feed it into the recommendation models."
+**Say:** "This stage handles all the dirty data the generator injected.
+Clickstream cleaning drops duplicate event IDs, normalises invalid event
+types, and removes rows with malformed timestamps. Transaction cleaning
+coerces text values in numeric columns, removes rows with non-positive
+prices or quantities, nullifies out-of-range ratings, recalculates
+`total_amount`, and drops unparseable timestamps — all with before/after
+row-count logging so you can see exactly what was cleaned. Categorical
+attributes are label-encoded and numeric fields are min-max normalized.
+The EDA now produces 10 plots covering interaction distributions, item
+popularity, rating distribution, user-item sparsity, plus new ones:
+device-by-event-type heatmap, price distribution histogram, user activity
+distribution, transactions by hour of day, and unit price box plot by
+category."
 
 **Show:**
 - `data\processed\*.csv` files in File Explorer.
-- Open plots in `reports\eda_plots\` (event type distribution, item
-  popularity, sparsity, rating distribution, avg price by category).
+- Open plots in `reports\eda_plots\` — show both the original plots
+  (event type distribution, item popularity, sparsity, rating distribution)
+  and the new ones (device_event_heatmap, price_distribution,
+  user_activity_distribution, transactions_by_hour,
+  price_by_category_boxplot).
 - Optionally open `notebooks\eda.ipynb` in Jupyter to show the executed
   notebook walkthrough.
 
@@ -136,15 +147,20 @@ before we feed it into the recommendation models."
 ```
 
 **Say:** "Features are engineered here to directly support both
-collaborative and content-based recommendation models: user-side features
-like total events, total purchases, total spend, average rating given, and
-activity frequency (events per active day); item-side features like
-normalized price, encoded category, average rating received, total
-interactions, and the external sentiment/popularity scores; and an
-item-item co-occurrence table with Jaccard similarity based on shared user
-interaction sets. All of this is loaded into a SQLite warehouse using a
-declarative star-schema defined in `schema.sql`, with dimension tables for
-users and items and fact tables for interactions and transactions."
+collaborative and content-based recommendation models. User-side features
+now include total events, total purchases, total spend, average rating
+given, activity frequency, plus new ones: total views, unique sessions,
+average spend per transaction, purchase-to-view conversion ratio, and a
+recency score (days since last active). Item-side features include
+normalized price, encoded category, average rating received, and now also
+rating count, a Bayesian weighted average rating that shrinks towards the
+global mean to handle items with few ratings, total views per item, unique
+users per item, an item-level conversion rate (purchases divided by views),
+and the external sentiment/popularity scores. There's also the item-item
+co-occurrence table with Jaccard similarity. All of this is loaded into a
+SQLite warehouse using a declarative star-schema defined in `schema.sql`,
+with dimension tables for users and items and fact tables for interactions
+and transactions."
 
 **Show:** Open `warehouse\recomart.db` in a SQLite viewer — show
 `dim_users`, `dim_items`, `item_cooccurrence`, `fact_interactions`,
