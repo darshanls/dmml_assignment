@@ -13,6 +13,7 @@ Usage:
 import glob
 import json
 import os
+import re
 import sys
 from html import escape
 
@@ -68,19 +69,15 @@ def build_html():
                 ds.get("row_count", "N/A"), len(ds.get("issues", [])),
             ))
 
-    plot_files = [
-        "event_type_distribution.png", "item_popularity.png", "sparsity.png",
-        "rating_distribution.png", "avg_price_by_category.png",
-    ]
+    plot_files = sorted(glob.glob(os.path.join(PLOTS_DIR, "*.png")))
     plots_html = ""
-    for fname in plot_files:
-        fpath = os.path.join(PLOTS_DIR, fname)
-        if os.path.exists(fpath):
-            title = fname.replace("_", " ").replace(".png", "").title()
-            plots_html += (
-                f'<figure><figcaption>{escape(title)}</figcaption>'
-                f'<img src="eda_plots/{fname}" alt="{escape(title)}"></figure>'
-            )
+    for fpath in plot_files:
+        fname = os.path.basename(fpath)
+        title = re.sub(r"[-_]+", " ", fname.replace(".png", "")).title()
+        plots_html += (
+            f'<figure><figcaption>{escape(title)}</figcaption>'
+            f'<img src="eda_plots/{escape(fname)}" alt="{escape(title)}"></figure>'
+        )
 
     team_rows = TEAM_MEMBERS[1:] if TEAM_MEMBERS else []
     team_headers = list(TEAM_MEMBERS[0]) if TEAM_MEMBERS else ["Name", "Roll No / ID"]
@@ -177,7 +174,10 @@ def build_html():
 ) + (
     ("<h3>Data quality validation summary</h3>" + _table(["Dataset", "Status", "Rows", "Issues"], quality_rows))
     if quality_rows else ""
-) + f"<h3>EDA Summary Plots</h3>{plots_html}")}
+) + f"<h3>EDA Summary Plots (all generated plots)</h3>{plots_html}" + _para(
+    "Other generated artifacts: reports/Data_Quality_Report.pdf, "
+    "warehouse/recomart.db, data/features/*.csv, and mlruns/ for MLflow tracking."
+))}
 
 {_section("6. Conclusion and Future Scope", _para(
     "This POC demonstrates a fully modular, end-to-end data management pipeline "

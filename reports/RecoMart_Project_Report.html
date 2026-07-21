@@ -82,19 +82,19 @@
 
     <section>
         <h2>5. Results and Output</h2>
-        <h3>Warehouse table row counts (latest pipeline run)</h3><table><thead><tr><th>Table</th><th>Row Count</th></tr></thead><tbody><tr><td>dim_users</td><td>496</td></tr>
+        <h3>Warehouse table row counts (latest pipeline run)</h3><table><thead><tr><th>Table</th><th>Row Count</th></tr></thead><tbody><tr><td>dim_users</td><td>494</td></tr>
 <tr><td>dim_items</td><td>20</td></tr>
-<tr><td>fact_interactions</td><td>2000</td></tr>
-<tr><td>fact_transactions</td><td>400</td></tr>
-<tr><td>item_cooccurrence</td><td>190</td></tr></tbody></table><h3>Model evaluation metrics (MLflow-tracked, latest run per model)</h3><h4>svd_collaborative_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>explained_variance_ratio</td><td>0.9785</td></tr>
-<tr><td>ndcg_at_k</td><td>0.3499</td></tr>
-<tr><td>precision_at_k</td><td>0.0805</td></tr>
-<tr><td>recall_at_k</td><td>0.6469</td></tr></tbody></table><h4>content_based_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>ndcg_at_k</td><td>0.2904</td></tr>
-<tr><td>precision_at_k</td><td>0.0706</td></tr>
-<tr><td>recall_at_k</td><td>0.5811</td></tr></tbody></table><h3>Data quality validation summary</h3><table><thead><tr><th>Dataset</th><th>Status</th><th>Rows</th><th>Issues</th></tr></thead><tbody><tr><td>clickstream</td><td>OK</td><td>2000</td><td>0</td></tr>
-<tr><td>transactions</td><td>OK</td><td>400</td><td>0</td></tr>
+<tr><td>fact_interactions</td><td>1934</td></tr>
+<tr><td>fact_transactions</td><td>391</td></tr>
+<tr><td>item_cooccurrence</td><td>190</td></tr></tbody></table><h3>Model evaluation metrics (MLflow-tracked, latest run per model)</h3><h4>svd_collaborative_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>explained_variance_ratio</td><td>0.9738</td></tr>
+<tr><td>ndcg_at_k</td><td>0.3391</td></tr>
+<tr><td>precision_at_k</td><td>0.0753</td></tr>
+<tr><td>recall_at_k</td><td>0.6103</td></tr></tbody></table><h4>content_based_filtering</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>ndcg_at_k</td><td>0.2644</td></tr>
+<tr><td>precision_at_k</td><td>0.0703</td></tr>
+<tr><td>recall_at_k</td><td>0.5568</td></tr></tbody></table><h3>Data quality validation summary</h3><table><thead><tr><th>Dataset</th><th>Status</th><th>Rows</th><th>Issues</th></tr></thead><tbody><tr><td>clickstream</td><td>WARN</td><td>2040</td><td>3</td></tr>
+<tr><td>transactions</td><td>WARN</td><td>408</td><td>5</td></tr>
 <tr><td>products</td><td>OK</td><td>20</td><td>0</td></tr>
-<tr><td>sentiment</td><td>OK</td><td>20</td><td>0</td></tr></tbody></table><h3>EDA Summary Plots</h3><figure><figcaption>Event Type Distribution</figcaption><img src="eda_plots/event_type_distribution.png" alt="Event Type Distribution"></figure><figure><figcaption>Item Popularity</figcaption><img src="eda_plots/item_popularity.png" alt="Item Popularity"></figure><figure><figcaption>Sparsity</figcaption><img src="eda_plots/sparsity.png" alt="Sparsity"></figure><figure><figcaption>Rating Distribution</figcaption><img src="eda_plots/rating_distribution.png" alt="Rating Distribution"></figure><figure><figcaption>Avg Price By Category</figcaption><img src="eda_plots/avg_price_by_category.png" alt="Avg Price By Category"></figure>
+<tr><td>sentiment</td><td>OK</td><td>20</td><td>0</td></tr></tbody></table><h3>EDA Summary Plots (all generated plots)</h3><figure><figcaption>Avg Price By Category</figcaption><img src="eda_plots/avg_price_by_category.png" alt="Avg Price By Category"></figure><figure><figcaption>Device Event Heatmap</figcaption><img src="eda_plots/device_event_heatmap.png" alt="Device Event Heatmap"></figure><figure><figcaption>Event Type Distribution</figcaption><img src="eda_plots/event_type_distribution.png" alt="Event Type Distribution"></figure><figure><figcaption>Item Popularity</figcaption><img src="eda_plots/item_popularity.png" alt="Item Popularity"></figure><figure><figcaption>Price By Category Boxplot</figcaption><img src="eda_plots/price_by_category_boxplot.png" alt="Price By Category Boxplot"></figure><figure><figcaption>Price Distribution</figcaption><img src="eda_plots/price_distribution.png" alt="Price Distribution"></figure><figure><figcaption>Rating Distribution</figcaption><img src="eda_plots/rating_distribution.png" alt="Rating Distribution"></figure><figure><figcaption>Sparsity</figcaption><img src="eda_plots/sparsity.png" alt="Sparsity"></figure><figure><figcaption>Transactions By Hour</figcaption><img src="eda_plots/transactions_by_hour.png" alt="Transactions By Hour"></figure><figure><figcaption>User Activity Distribution</figcaption><img src="eda_plots/user_activity_distribution.png" alt="User Activity Distribution"></figure><p>Other generated artifacts: reports/Data_Quality_Report.pdf, warehouse/recomart.db, data/features/*.csv, and mlruns/ for MLflow tracking.</p>
     </section>
     
 
