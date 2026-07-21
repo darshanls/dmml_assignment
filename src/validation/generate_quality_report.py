@@ -65,14 +65,43 @@ def build_pdf(report: dict, out_path: str):
             for col, count in range_violations.items():
                 pdf.cell(0, 5, f"   - {col}: {count} rows out of range", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
+        ts_errors = ds.get("timestamp_format_errors", {})
+        if ts_errors:
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(0, 6, "Timestamp format errors:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_font("Helvetica", "", 9)
+            for col, count in ts_errors.items():
+                pdf.cell(0, 5, f"   - {col}: {count} unparseable rows", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+        av_violations = ds.get("allowed_value_violations", {})
+        if av_violations:
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(0, 6, "Allowed-value violations:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_font("Helvetica", "", 9)
+            for col, count in av_violations.items():
+                pdf.cell(0, 5, f"   - {col}: {count} rows with invalid category", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+        nn_violations = ds.get("non_numeric_violations", {})
+        if nn_violations:
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(0, 6, "Non-numeric value errors:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_font("Helvetica", "", 9)
+            for col, count in nn_violations.items():
+                pdf.cell(0, 5, f"   - {col}: {count} rows with text in numeric field", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
         issues = ds.get("issues", [])
         if issues:
             pdf.set_font("Helvetica", "B", 10)
             pdf.set_text_color(150, 0, 0)
             pdf.cell(0, 6, "Issues:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             pdf.set_font("Helvetica", "", 9)
+            usable_width = pdf.w - pdf.r_margin - pdf.l_margin
             for issue in issues:
-                pdf.multi_cell(0, 5, f"   - {issue}")
+                pdf.set_x(pdf.l_margin)
+                pdf.multi_cell(
+                    usable_width, 5, f"- {issue}",
+                    new_x=XPos.LMARGIN, new_y=YPos.NEXT
+                )
             pdf.set_text_color(0, 0, 0)
 
         pdf.ln(4)

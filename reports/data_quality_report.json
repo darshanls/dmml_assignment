@@ -1,53 +1,80 @@
 {
-  "generated_at": "2026-07-20T13:33:55.902807",
+  "generated_at": "2026-07-21T13:04:14.732984",
   "datasets": [
     {
       "dataset": "clickstream",
       "files_checked": [
-        "C:\\Darshan\\DMML\\data\\raw\\clickstream\\events\\2026-07-20\\clickstream_20260720T133351.csv"
+        "C:\\Darshan\\DMML\\data\\raw\\clickstream\\events\\2026-07-21\\clickstream_20260721T130412.csv"
       ],
-      "status": "OK",
-      "issues": [],
-      "row_count": 2000,
+      "status": "WARN",
+      "issues": [
+        "40 duplicate 'event_id' values",
+        "15 rows have unparseable timestamp in 'event_timestamp'",
+        "16 rows have invalid value in 'event_type'"
+      ],
+      "row_count": 2040,
       "null_pct_by_column": {
         "event_id": 0.0,
-        "user_id": 0.0,
-        "product_id": 0.0,
-        "event_type": 0.0,
+        "user_id": 0.74,
+        "product_id": 0.69,
+        "event_type": 0.34,
         "device": 0.0,
         "session_id": 0.0,
-        "event_timestamp": 0.0
+        "event_timestamp": 0.15
       },
-      "duplicate_rows": 0,
-      "duplicate_primary_keys": 0,
-      "range_violations": {}
+      "duplicate_rows": 40,
+      "duplicate_primary_keys": 40,
+      "range_violations": {},
+      "timestamp_format_errors": {
+        "event_timestamp": 15
+      },
+      "allowed_value_violations": {
+        "event_type": 16
+      },
+      "non_numeric_violations": {}
     },
     {
       "dataset": "transactions",
       "files_checked": [
-        "C:\\Darshan\\DMML\\data\\raw\\transactions\\purchases\\2026-07-20\\transactions_20260720T133351.csv"
+        "C:\\Darshan\\DMML\\data\\raw\\transactions\\purchases\\2026-07-21\\transactions_20260721T130412.csv"
       ],
-      "status": "OK",
-      "issues": [],
-      "row_count": 400,
+      "status": "WARN",
+      "issues": [
+        "8 duplicate 'transaction_id' values",
+        "1 rows violate range check on 'rating'",
+        "2 rows violate range check on 'quantity'",
+        "1 rows have unparseable timestamp in 'transaction_timestamp'",
+        "1 rows have non-numeric value in 'rating'"
+      ],
+      "row_count": 408,
       "null_pct_by_column": {
         "transaction_id": 0.0,
-        "user_id": 0.0,
+        "user_id": 1.47,
         "product_id": 0.0,
         "quantity": 0.0,
         "unit_price": 0.0,
         "total_amount": 0.0,
-        "rating": 53.25,
+        "rating": 48.53,
         "transaction_timestamp": 0.0
       },
-      "duplicate_rows": 0,
-      "duplicate_primary_keys": 0,
-      "range_violations": {}
+      "duplicate_rows": 8,
+      "duplicate_primary_keys": 8,
+      "range_violations": {
+        "rating": 1,
+        "quantity": 2
+      },
+      "timestamp_format_errors": {
+        "transaction_timestamp": 1
+      },
+      "allowed_value_violations": {},
+      "non_numeric_violations": {
+        "rating": 1
+      }
     },
     {
       "dataset": "products",
       "files_checked": [
-        "C:\\Darshan\\DMML\\data\\raw\\products\\catalog\\2026-07-20\\products_20260720T133351.csv"
+        "C:\\Darshan\\DMML\\data\\raw\\products\\catalog\\2026-07-21\\products_20260721T130412.csv"
       ],
       "status": "OK",
       "issues": [],
@@ -64,12 +91,15 @@
       },
       "duplicate_rows": 0,
       "duplicate_primary_keys": 0,
-      "range_violations": {}
+      "range_violations": {},
+      "timestamp_format_errors": {},
+      "allowed_value_violations": {},
+      "non_numeric_violations": {}
     },
     {
       "dataset": "sentiment",
       "files_checked": [
-        "C:\\Darshan\\DMML\\data\\raw\\sentiment\\scores\\2026-07-20\\sentiment_20260720T133355.csv"
+        "C:\\Darshan\\DMML\\data\\raw\\sentiment\\scores\\2026-07-21\\sentiment_20260721T130414.csv"
       ],
       "status": "OK",
       "issues": [],
@@ -82,7 +112,10 @@
       },
       "duplicate_rows": 0,
       "duplicate_primary_keys": 0,
-      "range_violations": {}
+      "range_violations": {},
+      "timestamp_format_errors": {},
+      "allowed_value_violations": {},
+      "non_numeric_violations": {}
     }
   ]
 }

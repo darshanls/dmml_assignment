@@ -48,6 +48,10 @@ def _latest_partition_files(source: str, data_type: str, ext: str = "csv"):
     return [partition_files[-1]] if partition_files else []
 
 
+# Allowed values for categorical columns (used in format checks)
+_VALID_EVENT_TYPES = {"view", "click", "add_to_cart", "wishlist", "purchase"}
+_VALID_DEVICES = {"web", "android", "ios"}
+
 DATASET_SPECS = {
     "clickstream": {
         "source": "clickstream", "data_type": "events",
@@ -55,6 +59,8 @@ DATASET_SPECS = {
                               "device", "session_id", "event_timestamp"],
         "primary_key": "event_id",
         "range_checks": {},
+        "timestamp_columns": ["event_timestamp"],
+        "allowed_values": {"event_type": _VALID_EVENT_TYPES, "device": _VALID_DEVICES},
     },
     "transactions": {
         "source": "transactions", "data_type": "purchases",
@@ -62,6 +68,8 @@ DATASET_SPECS = {
                               "unit_price", "total_amount", "rating", "transaction_timestamp"],
         "primary_key": "transaction_id",
         "range_checks": {"rating": (1, 5), "unit_price": (0, None), "quantity": (1, None)},
+        "timestamp_columns": ["transaction_timestamp"],
+        "numeric_columns": ["rating", "unit_price", "quantity", "total_amount"],
     },
     "products": {
         "source": "products", "data_type": "catalog",
@@ -69,12 +77,14 @@ DATASET_SPECS = {
                               "description", "image", "rating_rate", "rating_count"],
         "primary_key": "product_id",
         "range_checks": {"price": (0, None), "rating_rate": (0, 5)},
+        "timestamp_columns": [],
     },
     "sentiment": {
         "source": "sentiment", "data_type": "scores",
         "expected_columns": ["product_id", "sentiment_score", "popularity_score", "scored_at"],
         "primary_key": "product_id",
         "range_checks": {"sentiment_score": (-1, 1), "popularity_score": (0, 1)},
+        "timestamp_columns": ["scored_at"],
     },
 }
 
@@ -129,6 +139,43 @@ def validate_dataset(name: str, spec: dict) -> dict:
             range_issues[col] = violations
             result["issues"].append(f"{violations} rows violate range check on '{col}'")
     result["range_violations"] = range_issues
+
+    # Timestamp format checks
+    ts_issues = {}
+    for col in spec.get("timestamp_columns", []):
+        if col not in df.columns:
+            continue
+        parsed = pd.to_datetime(df[col], errors="coerce")
+        n_bad = int(parsed.isna().sum() - df[col].isna().sum())  # exclude already-null
+        if n_bad > 0:
+            ts_issues[col] = n_bad
+            result["issues"].append(f"{n_bad} rows have unparseable timestamp in '{col}'")
+    result["timestamp_format_errors"] = ts_issues
+
+    # Allowed-value checks (categorical columns)
+    av_issues = {}
+    for col, allowed in spec.get("allowed_values", {}).items():
+        if col not in df.columns:
+            continue
+        invalid_mask = ~df[col].dropna().isin(allowed)
+        n_invalid = int(invalid_mask.sum())
+        if n_invalid > 0:
+            av_issues[col] = n_invalid
+            result["issues"].append(f"{n_invalid} rows have invalid value in '{col}'")
+    result["allowed_value_violations"] = av_issues
+
+    # Non-numeric value checks (columns expected to be numeric)
+    nn_issues = {}
+    for col in spec.get("numeric_columns", []):
+        if col not in df.columns:
+            continue
+        original_nulls = int(df[col].isna().sum())
+        coerced = pd.to_numeric(df[col], errors="coerce")
+        new_nulls = int(coerced.isna().sum()) - original_nulls
+        if new_nulls > 0:
+            nn_issues[col] = new_nulls
+            result["issues"].append(f"{new_nulls} rows have non-numeric value in '{col}'")
+    result["non_numeric_violations"] = nn_issues
 
     if result["issues"] and result["status"] == "OK":
         result["status"] = "WARN"

@@ -56,24 +56,86 @@ def build_user_features(clickstream: pd.DataFrame, transactions: pd.DataFrame) -
     avg_rating_user = transactions.groupby("user_id")["rating"].mean().rename("avg_rating_given")
     last_active = clickstream.groupby("user_id")["event_timestamp"].max().rename("last_active_at")
 
+    # --- New: view count and purchase-to-view conversion ratio ---------------
+    views_per_user = (
+        clickstream[clickstream["event_type"] == "view"]
+        .groupby("user_id")
+        .size()
+        .rename("total_views")
+    )
+
+    # --- New: unique sessions per user ---------------------------------------
+    sessions_per_user = (
+        clickstream.groupby("user_id")["session_id"].nunique().rename("unique_sessions")
+    )
+
+    # --- New: average spend per transaction ----------------------------------
+    avg_spend = transactions.groupby("user_id")["total_amount"].mean().rename("avg_spend_per_txn")
+
     users = pd.concat(
-        [events_per_user, active_days, purchases_per_user, spend_per_user, avg_rating_user, last_active],
+        [events_per_user, active_days, purchases_per_user, spend_per_user,
+         avg_rating_user, last_active, views_per_user, sessions_per_user, avg_spend],
         axis=1,
     ).reset_index()
 
     users["active_days"] = users["active_days"].replace(0, 1)
     users["activity_frequency"] = (users["total_events"] / users["active_days"]).round(3)
     users = users.drop(columns=["active_days"])
-    users = users.fillna({"total_purchases": 0, "total_spend": 0.0})
+    users = users.fillna({"total_purchases": 0, "total_spend": 0.0, "total_views": 0,
+                          "unique_sessions": 0, "avg_spend_per_txn": 0.0})
+
+    # Purchase-to-view conversion ratio (avoid div-by-zero)
+    users["purchase_to_view_ratio"] = np.where(
+        users["total_views"] > 0,
+        (users["total_purchases"] / users["total_views"]).round(4),
+        0.0,
+    )
+
+    # Recency score: days since last active (higher = less recent)
+    ref_date = clickstream["event_timestamp"].max()
+    users["days_since_last_active"] = (
+        (ref_date - pd.to_datetime(users["last_active_at"]))
+        .dt.total_seconds()
+        .div(86400)
+        .round(2)
+    )
     return users
 
 
 def build_item_features(
     clickstream: pd.DataFrame, transactions: pd.DataFrame, products: pd.DataFrame, sentiment: pd.DataFrame
 ) -> pd.DataFrame:
+    # The product catalog from FakeStore already has `rating_count` / `rating_rate` columns.
+    # Rename them so they don't collide with the transaction-derived `rating_count` feature.
+    products = products.copy()
+    for col in ["rating_count", "rating_rate"]:
+        if col in products.columns:
+            products = products.rename(columns={col: f"api_{col}"})
+
     interactions_per_item = clickstream.groupby("product_id").size().rename("total_interactions")
     purchases_per_item = transactions.groupby("product_id").size().rename("total_purchases")
     avg_rating_item = transactions.groupby("product_id")["rating"].mean().rename("avg_rating_item")
+    rating_count_item = transactions.groupby("product_id")["rating"].count().rename("rating_count")
+
+    # --- New: Bayesian weighted rating (shrink towards global mean) ----------
+    global_mean = transactions["rating"].mean()
+    C = 10  # confidence weight (minimum ratings equivalent)
+    bayesian_avg = transactions.groupby("product_id").apply(
+        lambda g: (C * global_mean + g["rating"].sum()) / (C + g["rating"].count())
+    ).rename("weighted_avg_rating")
+
+    # --- New: view-to-purchase conversion per item ---------------------------
+    views_per_item = (
+        clickstream[clickstream["event_type"] == "view"]
+        .groupby("product_id")
+        .size()
+        .rename("total_views")
+    )
+
+    # --- New: distinct users who interacted with each item -------------------
+    unique_users_item = (
+        clickstream.groupby("product_id")["user_id"].nunique().rename("unique_users")
+    )
 
     items = products.merge(
         interactions_per_item, left_on="product_id", right_index=True, how="left"
@@ -82,11 +144,31 @@ def build_item_features(
     ).merge(
         avg_rating_item, left_on="product_id", right_index=True, how="left"
     ).merge(
+        rating_count_item, left_on="product_id", right_index=True, how="left"
+    ).merge(
+        bayesian_avg, left_on="product_id", right_index=True, how="left"
+    ).merge(
+        views_per_item, left_on="product_id", right_index=True, how="left"
+    ).merge(
+        unique_users_item, left_on="product_id", right_index=True, how="left"
+    ).merge(
         sentiment[["product_id", "sentiment_score", "popularity_score"]], on="product_id", how="left"
     )
 
-    items[["total_interactions", "total_purchases"]] = items[["total_interactions", "total_purchases"]].fillna(0)
+    items[["total_interactions", "total_purchases", "total_views",
+           "unique_users", "rating_count"]] = items[
+        ["total_interactions", "total_purchases", "total_views",
+         "unique_users", "rating_count"]
+    ].fillna(0)
     items["avg_rating_item"] = items["avg_rating_item"].fillna(items["avg_rating_item"].mean())
+    items["weighted_avg_rating"] = items["weighted_avg_rating"].fillna(global_mean)
+
+    # Item-level conversion: purchases / views (avoid div-by-zero)
+    items["item_conversion_rate"] = np.where(
+        items["total_views"] > 0,
+        (items["total_purchases"] / items["total_views"]).round(4),
+        0.0,
+    )
     return items
 
 
@@ -123,12 +205,16 @@ def load_into_warehouse(users, items, cooccurrence, clickstream, transactions):
             conn.executescript(f.read())
 
         users_cols = ["user_id", "total_events", "total_purchases", "total_spend",
-                      "avg_rating_given", "activity_frequency", "last_active_at"]
+                      "avg_rating_given", "last_active_at", "total_views",
+                      "unique_sessions", "avg_spend_per_txn", "activity_frequency",
+                      "purchase_to_view_ratio", "days_since_last_active"]
         users[users_cols].to_sql("dim_users", conn, if_exists="append", index=False)
 
         items_cols = ["product_id", "title", "category", "price", "price_norm",
-                      "category_encoded", "avg_rating_item", "total_interactions",
-                      "total_purchases", "sentiment_score", "popularity_score"]
+                      "category_encoded", "avg_rating_item", "rating_count",
+                      "weighted_avg_rating", "total_interactions", "total_purchases",
+                      "total_views", "unique_users", "item_conversion_rate",
+                      "sentiment_score", "popularity_score"]
         items[items_cols].to_sql("dim_items", conn, if_exists="append", index=False)
 
         cooccurrence.to_sql("item_cooccurrence", conn, if_exists="append", index=False)

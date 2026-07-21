@@ -3,26 +3,36 @@
 
 DROP TABLE IF EXISTS dim_users;
 CREATE TABLE dim_users (
-    user_id             TEXT PRIMARY KEY,
-    total_events        INTEGER,
-    total_purchases     INTEGER,
-    total_spend         REAL,
-    avg_rating_given    REAL,
-    activity_frequency  REAL,   -- events per active day
-    last_active_at      TEXT
+    user_id                 TEXT PRIMARY KEY,
+    total_events            INTEGER,
+    total_purchases         INTEGER,
+    total_spend             REAL,
+    avg_rating_given        REAL,
+    last_active_at          TEXT,
+    total_views             INTEGER,
+    unique_sessions         INTEGER,
+    avg_spend_per_txn       REAL,
+    activity_frequency      REAL,   -- events per active day
+    purchase_to_view_ratio  REAL,   -- purchases / views conversion
+    days_since_last_active  REAL    -- recency feature
 );
 
 DROP TABLE IF EXISTS dim_items;
 CREATE TABLE dim_items (
-    product_id          INTEGER PRIMARY KEY,
+    product_id           INTEGER PRIMARY KEY,
     title                TEXT,
     category             TEXT,
     price                REAL,
     price_norm           REAL,
     category_encoded     INTEGER,
     avg_rating_item      REAL,
+    rating_count         INTEGER,
+    weighted_avg_rating  REAL,   -- Bayesian shrinkage towards global mean
     total_interactions   INTEGER,
     total_purchases      INTEGER,
+    total_views          INTEGER,
+    unique_users         INTEGER,
+    item_conversion_rate REAL,   -- purchases / views
     sentiment_score      REAL,
     popularity_score     REAL
 );
